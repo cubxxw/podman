@@ -1,0 +1,28 @@
+name: Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Send mail
+      uses: dawidd6/action-send-mail@v3.8.0
+      with:
+        from: example@example.com
+        to: ${{ secrets.MAIL_TO }}
+        subject: GitHub Actions run result
+        body: Build ${{ github.run_id }} finished successfully!
+
+    - name: Run GraphQL query
+      run: |
+        curl -H "Authorization: bearer ${{ secrets.GITHUB_TOKEN }}" -X POST -d '{
+          "query": "query { repository(platform: \"github\", owner: \"cubxxw\", name: \"podman\") { cronSettings { name lastInvocationBuild { id status } } }}"
+        }' https://api.github.com/graphql
