@@ -58,6 +58,16 @@ gql "$(<./artifacts/query.json)" "$filt_head" > ./artifacts/reply.json
 #             "id": "5776050544181248",
 #             "status": "EXECUTING"
 #           }
+jq -e '.data.ownerRepository.cronSettings != null' ./artifacts/reply.json > /dev/null
+if [ $? -ne 0 ]; then
+  echo "Error: GraphQL query did not return expected data"
+  exit 1
+fi
+if [ -z "
+response.data.ownerRepository.cronSettings" ]; then
+  echo "Error: GraphQL query did not return expected data"
+  exit 1
+fi
 #         },
 #         {
 #           "name": "Keepalive_v1.9",
