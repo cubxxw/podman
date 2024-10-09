@@ -19,7 +19,7 @@ confirm_gha_environment
 mkdir -p ./artifacts
 cat > ./artifacts/query_raw.json << "EOF"
 query {
-  ownerRepository(platform: "github", owner: "@@OWNER@@", name: "@@REPO@@") {
+  ownerRepository(platform: "github", owner: "containers", name: "podman") {
     cronSettings {
       name
       lastInvocationBuild {
