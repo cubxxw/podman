@@ -1,0 +1,22 @@
+name: Main Workflow
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Run tests
+      run: make test
+
+    - name: Send email
+      uses: dawidd6/action-send-mail@v3.8.0
+      with:
+        server_port: 465
+        subject: Github workflow error on cubxxw/podman
+        to: podman-monitor@lists.podman.io
+        body: Job failed: https://github.com/cubxxw/podman/actions/runs/7343573248
+        from: your-email@example.com
