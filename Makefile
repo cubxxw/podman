@@ -25,6 +25,15 @@ SHELL := $(shell command -v bash;)
 GO ?= go
 GO_LDFLAGS:= $(shell if $(GO) version|grep -q gccgo ; then echo "-gccgoflags"; else echo "-ldflags"; fi)
 GOCMD = CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO)
+# Podman does not work w/o CGO_ENABLED, except in some very specific cases.
+# Windows and Mac (both podman-remote client only) require CGO_ENABLED=0.
+CGO_ENABLED ?= 1
+# Default to the native OS type and architecture unless otherwise specified
+NATIVE_GOOS := $(shell env -u GOOS $(GO) env GOOS)
+GOOS ?= $(call err_if_empty,NATIVE_GOOS)
+# Default to the native architecture type
+NATIVE_GOARCH := $(shell env -u GOARCH $(GO) env GOARCH)
+GOARCH ?= $(NATIVE_GOARCH)
 COVERAGE_PATH ?= .coverage
 DESTDIR ?=
 EPOCH_TEST_COMMIT ?= $(shell git merge-base $${DEST_BRANCH:-main} HEAD)
@@ -48,11 +57,10 @@ SYSTEMDDIR ?= ${LIBDIR}/systemd/system
 USERSYSTEMDDIR ?= ${LIBDIR}/systemd/user
 SYSTEMDGENERATORSDIR ?= ${LIBDIR}/systemd/system-generators
 USERSYSTEMDGENERATORSDIR ?= ${LIBDIR}/systemd/user-generators
-REMOTETAGS ?= remote exclude_graphdriver_btrfs btrfs_noversion containers_image_openpgp
+REMOTETAGS ?= remote exclude_graphdriver_btrfs containers_image_openpgp
 BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
 	$(shell hack/btrfs_installed_tag.sh) \
-	$(shell hack/btrfs_tag.sh) \
 	$(shell hack/systemd_tag.sh) \
 	$(shell hack/libsubid_tag.sh) \
 	$(if $(filter linux,$(GOOS)), seccomp,)
@@ -61,7 +69,7 @@ BUILDTAGS += ${EXTRA_BUILDTAGS}
 # N/B: This value is managed by Renovate, manual changes are
 # possible, as long as they don't disturb the formatting
 # (i.e. DO NOT ADD A 'v' prefix!)
-GOLANGCI_LINT_VERSION := 2.1.5
+GOLANGCI_LINT_VERSION := 2.1.6
 PYTHON ?= $(shell command -v python3 python|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 # ~/.local/bin is not in PATH on all systems
@@ -179,15 +187,6 @@ CROSS_BUILD_TARGETS := \
 # Dereference variable $(1), return value if non-empty, otherwise raise an error.
 err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
 
-# Podman does not work w/o CGO_ENABLED, except in some very specific cases.
-# Windows and Mac (both podman-remote client only) require CGO_ENABLED=0.
-CGO_ENABLED ?= 1
-# Default to the native OS type and architecture unless otherwise specified
-NATIVE_GOOS := $(shell env -u GOOS $(GO) env GOOS)
-GOOS ?= $(call err_if_empty,NATIVE_GOOS)
-# Default to the native architecture type
-NATIVE_GOARCH := $(shell env -u GOARCH $(GO) env GOARCH)
-GOARCH ?= $(NATIVE_GOARCH)
 ifeq ($(call err_if_empty,GOOS),windows)
 BINSFX := .exe
 SRCBINDIR := bin/windows
@@ -848,7 +847,7 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 		$(MAKE) $(GOPLAT) podman-remote; \
 	fi
 	if [[ "$(GOOS)" == "windows" ]]; then \
-		$(MAKE) $(GOPLAT) TMPDIR="" win-gvproxy; \
+		$(MAKE) $(GOPLAT) TMPDIR="" win-gvproxy-$(GOARCH); \
 	fi
 	if [[ "$(GOOS)" == "darwin" ]]; then \
 		$(MAKE) $(GOPLAT) podman-mac-helper;\
@@ -863,10 +862,15 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 
 # Downloads pre-built gvproxy and win-sshproxy helpers. See comment on GVPROXY_VERSION declaration
 .PHONY: win-gvproxy
-win-gvproxy: test/version/version
+win-gvproxy: win-gvproxy-amd64 # Keep this target for backwards compatibility
+
+win-gvproxy-%: test/version/version
+	$(eval GOARCH := $*)
+	$(eval GVPROXY_FILENAME := $(if $(filter arm64,$(GOARCH)), gvproxy-windows-arm64.exe,gvproxy-windowsgui.exe))
+	$(eval SSHPROXY_FILENAME :=  $(if $(filter arm64,$(GOARCH)), win-sshproxy-arm64.exe, win-sshproxy.exe))
 	mkdir -p bin/windows/
-	curl -sSL -o bin/windows/gvproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GVPROXY_VERSION)/gvproxy-windowsgui.exe
-	curl -sSL -o bin/windows/win-sshproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GVPROXY_VERSION)/win-sshproxy.exe
+	curl -sSL -o bin/windows/gvproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GVPROXY_VERSION)/$(GVPROXY_FILENAME)
+	curl -sSL -o bin/windows/win-sshproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GVPROXY_VERSION)/$(SSHPROXY_FILENAME)
 
 .PHONY: rpm
 rpm:  ## Build rpm packages
@@ -1060,6 +1064,8 @@ release-artifacts: clean-binaries
 	mv podman-remote-release-darwin_arm64.zip release/
 	$(MAKE) podman-remote-release-windows_amd64.zip
 	mv podman-remote-release-windows_amd64.zip release/
+	$(MAKE) podman-remote-release-windows_arm64.zip
+	mv podman-remote-release-windows_arm64.zip release/
 	$(MAKE) podman-remote-static-linux_amd64
 	tar -cvzf podman-remote-static-linux_amd64.tar.gz bin/podman-remote-static-linux_amd64
 	$(MAKE) podman-remote-static-linux_arm64

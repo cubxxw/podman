@@ -11,7 +11,6 @@ Windows.
   - [Git and go](#git-and-go)
   - [Pandoc](#pandoc)
   - [.NET SDK](#net-sdk)
-  - [Visual Studio Build Tools](#visual-studio-build-tools)
   - [Virtualization Provider](#virtualization-provider)
     - [WSL](#wsl)
     - [Hyper-V](#hyper-v)
@@ -59,17 +58,19 @@ reloaded. This can also be manually changed by configuring the `PATH`:
 $env:Path += ";C:\Program Files\Go\bin\;C:\Program Files\Git\cmd\"
 ```
 
-### Pandoc
+### Pandoc (optional)
 
 [Pandoc](https://pandoc.org/) is used to generate Podman documentation. It is
-required for building the documentation and the
-[bundle installer](#build-the-installer). It can be avoided when building and
-testing the
-[Podman client for Windows](#build-and-test-the-podman-client-for-windows) or
-[the standalone `podman.msi` installer](#build-and-test-the-standalone-podmanmsi-file).
+used for building the documentation.
 Pandoc can be installed from https://pandoc.org/installing.html. When performing
 the Pandoc installation one, has to choose the option "Install for all users"
 (to put the binaries into "Program Files" directory).
+Alternatively, Podman documentation can be built using a container with the target
+`docs-using-podman` in the `winmake.ps1` script.
+
+```pwsh
+.\winmake docs-using-podman
+```
 
 ### .NET SDK
 
@@ -86,30 +87,6 @@ used too and can be installed using `dotnet install`:
 
 ```pwsh
 dotnet tool install --global wix
-```
-
-### Visual Studio Build Tools
-
-The installer includes a C program that checks the installation of the
-pre-required virtualization providers (WSL or Hyper-V). Building this program
-requires the
-[Microsoft C/C++ compiler](https://learn.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=msvc-170) and the
-[PowerShell Module VSSetup](https://github.com/microsoft/vssetup.powershell):
-
-1. Download the Build Tools for Visual Studio 2022 installer
-```pwsh
-Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vs_BuildTools.exe' -OutFile "$env:TEMP\vs_BuildTools.exe"
-```
-2. Run the installer with the parameter to include the optional C/C++ Tools
-```pwsh
-& "$env:TEMP\vs_BuildTools.exe" --passive --wait `
-                      --add Microsoft.VisualStudio.Workload.VCTools `
-                      --includeRecommended `
-                      --remove Microsoft.VisualStudio.Component.VC.CMake.Project
-```
-3. Install the PowerShell Module VSSetup
-```pwsh
-Install-Module VSSetup
 ```
 
 ### Virtualization Provider
@@ -312,8 +289,7 @@ To learn how to use the Podman client, refer to its
 ## Build and test the Podman Windows installer
 
 The Podman Windows installer (e.g., `podman-5.1.0-dev-setup.exe`) is a bundle
-that includes an msi package (`podman.msi`) and installs the WSL kernel
-(`podman-wslkerninst.exe`). It's built using the
+that includes an msi package (`podman.msi`). It's built using the
 [WiX Toolset](https://wixtoolset.org/) and the
 [PanelSwWixExtension](https://github.com/nirbar/PanelSwWixExtension/tree/master5)
 WiX extension. The source code is in the folder `contrib\win-installer`.
@@ -326,7 +302,7 @@ To build the installation bundle, run the following command:
 .\winmake.ps1 installer
 ```
 
-:information_source: making `podman-remote`, `win-gvproxy`, and `docs` is
+:information_source: making `podman-remote`, `win-gvproxy`, and `docs` (or `docs-using-podman`) is
 required before running this command.
 
 Locate the installer in the `contrib\win-installer` folder (relative to checkout
@@ -334,9 +310,6 @@ root) with a name like `podman-5.2.0-dev-setup.exe`.
 
 The `installer` target of `winmake.ps1` runs the script
 `contrib\win-installer\build.ps1` that, in turns, executes:
-
-- `build-hooks.bat`: builds `podman-wslkerninst.exe` (WSL kernel installer) and
-  `podman-msihooks.dll` (helper that checks if WSL and Hyper-V are installed).
 - `dotnet build podman.wixproj`: builds `podman.msi` from the WiX source files `podman.wxs`,
   `pages.wxs`, `podman-ui.wxs` and `welcome-install-dlg.wxs`.
 - `dotnet build podman-setup.wixproj`: builds `podman-setup.exe` file from
@@ -519,7 +492,13 @@ tools:
   [`.pre-commit-config.yaml`](.pre-commit-config.yaml)
 
 :information_source: Install [golangci-lint](https://golangci-lint.run) and
-[pre-commit](https://pre-commit.com) to run `winmake.ps1 lint`.
+[pre-commit](https://pre-commit.com) to run `winmake.ps1 lint`:
+    ```pwsh
+    winget install -e golangci-lint.golangci-lint
+    winget install -e Python.Python.3.13
+    pip install pre-commit
+    ```
+
 
 ### winmake validatepr
 

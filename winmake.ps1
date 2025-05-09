@@ -1,5 +1,23 @@
 
 #!/usr/bin/env powershell
+[CmdletBinding(PositionalBinding=$false)]
+param (
+    [ValidateSet("amd64", "arm64")]
+    [Alias("arch")]
+    [string]$architecture = $(
+        $defaultArchitecture = "amd64"
+        $arch = try {& go env GOARCH} catch {
+            Write-Warning "Failed retriving the host architecture, using default ($defaultArchitecture). Is Go installed?"
+            return $defaultArchitecture
+        }
+        if ($arch -cnotin @("arm64", "amd64")) {
+            Write-Warning "Unsupported architecture $arch. Using default ($defaultArchitecture)."
+            return $defaultArchitecture
+        }
+        return $arch
+    ),
+    [parameter(ValueFromRemainingArguments)][object[]]$params = @()
+)
 
 . ./contrib/cirrus/win-lib.ps1
 
@@ -12,6 +30,7 @@ function Podman-Remote{
     $commit = Git-Commit
     $commit = "-X github.com/containers/podman/v5/libpod/define.gitCommit=$commit "
 
+    $ENV:GOARCH = $architecture
     Run-Command "go build --ldflags `"$commit $buildInfo `" --tags `"$remotetags`" --o ./bin/windows/podman.exe ./cmd/podman/."
 }
 
@@ -48,7 +67,8 @@ function Local-Unit {
     Build-Ginkgo
     $skippackages="hack,internal\domain\infra\abi,internal\domain\infra\tunnel,libpod\lock\shm,pkg\api\handlers\libpod,pkg\api\handlers\utils,pkg\bindings,"
     $skippackages+="pkg\domain\infra\abi,pkg\emulation,pkg\machine\apple,pkg\machine\applehv,pkg\machine\e2e,pkg\machine\libkrun,"
-    $skippackages+="pkg\machine\provider,pkg\machine\proxyenv,pkg\machine\qemu,pkg\specgen\generate,pkg\systemd,test\e2e,test\utils,cmd\rootlessport"
+    $skippackages+="pkg\machine\provider,pkg\machine\proxyenv,pkg\machine\qemu,pkg\specgen\generate,pkg\systemd,test\e2e,test\utils,cmd\rootlessport,"
+    $skippackages+="pkg\pidhandle"
     Run-Command "./bin/ginkgo.exe -vv -r --tags `"$remotetags`" --timeout=15m --trace --no-color --skip-package `"$skippackages`""
 }
 
@@ -75,8 +95,14 @@ function Win-SSHProxy {
         $match = Select-String -Path "$PSScriptRoot\go.mod" -Pattern "github.com/containers/gvisor-tap-vsock\s+(v[\d\.]+)"
         $Version = $match.Matches.Groups[1].Value
     }
-    curl.exe -sSL -o "./bin/windows/gvproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/gvproxy-windowsgui.exe"
-    curl.exe -sSL -o "./bin/windows/win-sshproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/win-sshproxy.exe"
+    Write-Host "Downloading gvproxy version $version"
+    if ($architecture -eq "amd64") {
+        curl.exe -sSL -o "./bin/windows/gvproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/gvproxy-windowsgui.exe"
+        curl.exe -sSL -o "./bin/windows/win-sshproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/win-sshproxy.exe"
+    } else {
+        curl.exe -sSL -o "./bin/windows/gvproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/gvproxy-windows-arm64.exe"
+        curl.exe -sSL -o "./bin/windows/win-sshproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/win-sshproxy-arm64.exe"
+    }
 }
 
 function Installer{
@@ -84,7 +110,7 @@ function Installer{
         [string]$version,
         [string]$suffix = "dev"
     );
-    Write-Host "Building the windows installer"
+    Write-Host "Building the windows installer for $architecture"
 
     # Check for the files to include in the installer
     $requiredArtifacts = @(
@@ -96,10 +122,10 @@ function Installer{
     $requiredArtifacts | ForEach-Object {
         if (!(Test-Path -Path $PSItem -PathType Leaf)) {
             Write-Host "$PSItem not found."
-            Write-Host "Make 'podman', 'win-gvproxy' and 'docs' before making the installer:"
+            Write-Host "Make 'podman', 'win-gvproxy' and 'docs' (or 'docs-using-podman') before making the installer:"
             Write-Host "   .\winmake.ps1 podman-remote"
             Write-Host "   .\winmake.ps1 win-gvproxy"
-            Write-Host "   .\winmake.ps1 docs"
+            Write-Host "   .\winmake.ps1 docs or .\winmake.ps1 docs-using-podman"
             Exit 1
         }
     }
@@ -115,6 +141,7 @@ function Installer{
 
     # Run \contrib\win-installer\build.ps1
     Push-Location $PSScriptRoot\contrib\win-installer
+    $ENV:PODMAN_ARCH = $architecture # This is used by the "build.ps1" script
     Run-Command ".\build.ps1 $version $suffix `"$zipFileDest`""
     Pop-Location
 }
@@ -147,10 +174,20 @@ function Test-Installer{
         Exit 1
     }
 
+    $nextSetupExePath = "$PSScriptRoot\contrib\win-installer\podman-9.9.9-dev-setup.exe"
+    if (!(Test-Path -Path $nextSetupExePath -PathType Leaf)) {
+        Write-Host "The automated tests include testing the upgrade from current version to a future version."
+        Write-Host "That requires a version 9.9.9 of the installer:"
+        Write-Host "   .\winmake.ps1 installer 9.9.9"
+        Write-Host "Build it and retry running installertest."
+        Exit 1
+    }
+
     $command = "$PSScriptRoot\contrib\win-installer\test-installer.ps1"
     $command += " -scenario all"
     $command += " -provider $provider"
     $command += " -setupExePath $setupExePath"
+    $command += " -nextSetupExePath $nextSetupExePath"
     Run-Command "${command}"
 }
 
@@ -159,6 +196,7 @@ function Documentation{
     # Check that pandoc is installed
     if (!(Get-Command -Name "pandoc" -ErrorAction SilentlyContinue)) {
         Write-Host "Pandoc not found. Pandoc is required to convert the documentation Markdown files into HTML files."
+        Write-Host "Alternatively, use '.\winmake docs-using-podman' to use a container to run pandoc and generate the documentation."
         Exit 1
     }
     # Check that the podman client is built
@@ -168,6 +206,41 @@ function Documentation{
         Exit 1
     }
     Run-Command "$PSScriptRoot\docs\make.ps1 $podmanClient"
+}
+
+# DocumentationUsingPodman generates documentation with pandoc running in a container.
+# This is usefult on Windows arm64 where pandoc is not available.
+# It's also useful to generate documentation identical to CI.
+# It requires the podman client to be built and a podman machine running.
+# The whole podman git repository is bind mounted in the container at /podman.
+# The documentation is generated by running the command `make podman-remote-windows-docs`.
+# The generated documentation is stored in the directory docs/build/remote.
+function DocumentationUsingPodman{
+    Write-Host "Generating documentation artifacts"
+    # Check that podman has been built
+    $podmanClient = "${PSScriptRoot}\bin\windows\podman.exe"
+    if (!(Test-Path -Path $podmanClient -PathType Leaf)) {
+        Write-Host "$podmanClient not found. Make 'podman-remote' before 'documentation'."
+        Exit 1
+    }
+    # Check that a podman machine exist
+    $currentMachine = (& ${podmanClient} machine info -f json | ConvertFrom-Json).Host.CurrentMachine
+    if (!$currentMachine) {
+        Write-Host "Podman machine doesn't exist. Initialize and start one before running the validate script."
+        Exit 1
+    }
+    # Check that the podman machine is running
+    $state = (& ${podmanClient} machine info -f json | ConvertFrom-Json).Host.MachineState
+    if ($state -ne "Running") {
+        Write-Host "Podman machine is not running. Start the machine before running the validate script."
+        Exit 1
+    }
+
+    Write-Host "Building the image to generate the documentation"
+    Run-Command "${podmanClient} build --build-arg TARGET_OS=windows -t podman-docs-generator ${PSScriptRoot}/docs"
+
+    Write-Host "Starting the container to run the documentation build"
+    Run-Command "${podmanClient} run -t --rm -v ${PSScriptRoot}:/podman podman-docs-generator"
 }
 
 function Validate{
@@ -252,7 +325,7 @@ function Build-Distribution-Zip-File{
         );
     $binariesFolder = "$PSScriptRoot\bin\windows"
     $documentationFolder = "$PSScriptRoot\docs\build\remote\"
-    $zipFile = "$destinationPath\podman-remote-release-windows_amd64.zip"
+    $zipFile = "$destinationPath\podman-remote-release-windows_$architecture.zip"
 
     # Create a temporary folder to store the distribution files
     $tempFolder = New-Item -ItemType Directory -Force -Path "$env:TEMP\podman-windows"
@@ -286,9 +359,9 @@ function Get-Podman-Version{
 }
 
 # Init script
-$target = $args[0]
+$target = $params[0]
 
-$remotetags = "remote exclude_graphdriver_btrfs btrfs_noversion containers_image_openpgp"
+$remotetags = "remote exclude_graphdriver_btrfs containers_image_openpgp"
 
 switch ($target) {
     {$_ -in '', 'podman-remote', 'podman'} {
@@ -298,36 +371,39 @@ switch ($target) {
         Local-Unit
     }
     'localmachine' {
-        if ($args.Count -gt 1) {
-            $files = $args[1]
+        if ($params.Count -gt 1) {
+            $files = $params[1]
         }
-        Local-Machine  -files $files
+        Local-Machine -files $files
     }
     'clean' {
         Make-Clean
     }
     {$_ -in 'win-sshproxy', 'win-gvproxy'} {
-        if ($args.Count -gt 1) {
-            $ref = $args[1]
+        if ($params.Count -gt 1) {
+            $ref = $params[1]
         }
         Win-SSHProxy($ref)
     }
     'installer' {
-        if ($args.Count -gt 1) {
-            Installer -version $args[1]
+        if ($params.Count -gt 1) {
+            Installer -version $params[1]
         } else {
             Installer
         }
     }
     'installertest' {
-        if ($args.Count -gt 1) {
-            Test-Installer -provider $args[1]
+        if ($params.Count -gt 1) {
+            Test-Installer -provider $params[1]
         } else {
             Test-Installer
         }
     }
     'docs' {
         Documentation
+    }
+    'docs-using-podman' {
+        DocumentationUsingPodman
     }
     'validatepr' {
         Validate
@@ -336,7 +412,7 @@ switch ($target) {
         Lint
     }
     default {
-        Write-Host "Usage: " $MyInvocation.MyCommand.Name "<target> [options]"
+        Write-Host "Usage: " $MyInvocation.MyCommand.Name "<target> [options] [<-architecture|-arch>=<amd64|arm64>]"
         Write-Host
         Write-Host "Example: Build podman-remote "
         Write-Host " .\winmake podman-remote"
@@ -359,8 +435,11 @@ switch ($target) {
         Write-Host "Example: Run windows installer tests"
         Write-Host " .\winmake installertest hyperv"
         Write-Host
-        Write-Host "Example: Generate the documetation artifacts"
+        Write-Host "Example: Generate the documentation artifacts"
         Write-Host " .\winmake docs"
+        Write-Host
+        Write-Host "Example: Generate the documentation artifacts by running pandoc in a container"
+        Write-Host " .\winmake docs-using-podman"
         Write-Host
         Write-Host "Example: Validate code changes before submitting a PR"
         Write-Host " .\winmake validatepr"

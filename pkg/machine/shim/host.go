@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine"
@@ -30,9 +32,7 @@ import (
 // List is done at the host level to allow for a *possible* future where
 // more than one provider is used
 func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.ListResponse, error) {
-	var (
-		lrs []*machine.ListResponse
-	)
+	var lrs []*machine.ListResponse
 
 	for _, s := range vmstubbers {
 		dirs, err := env.GetMachineDirs(s.VMType())
@@ -49,15 +49,15 @@ func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.
 				return nil, err
 			}
 			lr := machine.ListResponse{
-				Name:      name,
-				CreatedAt: mc.Created,
-				LastUp:    mc.LastUp,
-				Running:   state == machineDefine.Running,
-				Starting:  mc.Starting,
-				//Stream:             "", // No longer applicable
+				Name:               name,
+				CreatedAt:          mc.Created,
+				LastUp:             mc.LastUp,
+				Running:            state == machineDefine.Running,
+				Starting:           mc.Starting,
 				VMType:             s.VMType().String(),
 				CPUs:               mc.Resources.CPUs,
 				Memory:             mc.Resources.Memory,
+				Swap:               mc.Swap,
 				DiskSize:           mc.Resources.DiskSize,
 				Port:               mc.SSH.Port,
 				RemoteUsername:     mc.SSH.RemoteUsername,
@@ -204,13 +204,13 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		VMType:    mp.VMType(),
 		WritePath: ignitionFile.GetPath(),
 		Rootful:   opts.Rootful,
+		Swap:      opts.Swap,
 	})
 
 	// If the user provides an ignition file, we need to
 	// copy it into the conf dir
 	if len(opts.IgnitionPath) > 0 {
 		err = ignBuilder.BuildWithIgnitionFile(opts.IgnitionPath)
-
 		if err != nil {
 			return err
 		}
@@ -440,6 +440,7 @@ func stopLocked(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *mach
 func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, opts machine.StartOptions) error {
 	defaultBackoff := 500 * time.Millisecond
 	maxBackoffs := 6
+	signalChanClosed := false
 
 	mc.Lock()
 	defer mc.Unlock()
@@ -471,16 +472,40 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 		}
 	}
 
+	// if the machine cannot continue starting due to a signal, ensure the state
+	// reflects the machine is no longer starting
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		sig, ok := <-signalChan
+		if ok {
+			mc.Starting = false
+			logrus.Error("signal received when starting the machine: ", sig)
+
+			if err := mc.Write(); err != nil {
+				logrus.Error(err)
+			}
+
+			os.Exit(1)
+		}
+	}()
+
 	// Set starting to true
 	mc.Starting = true
 	if err := mc.Write(); err != nil {
 		logrus.Error(err)
 	}
+
 	// Set starting to false on exit
 	defer func() {
 		mc.Starting = false
 		if err := mc.Write(); err != nil {
 			logrus.Error(err)
+		}
+
+		if !signalChanClosed {
+			signal.Stop(signalChan)
+			close(signalChan)
 		}
 	}()
 
@@ -556,6 +581,11 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 		}
 		return errors.New(msg)
 	}
+
+	// now that the machine has transitioned into the running state, we don't need a goroutine listening for SIGINT or SIGTERM to handle state
+	signal.Stop(signalChan)
+	close(signalChan)
+	signalChanClosed = true
 
 	if err := proxyenv.ApplyProxies(mc); err != nil {
 		return err

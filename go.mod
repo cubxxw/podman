@@ -15,7 +15,7 @@ require (
 	github.com/containers/buildah v1.40.0
 	github.com/containers/common v0.63.0
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/gvisor-tap-vsock v0.8.5
+	github.com/containers/gvisor-tap-vsock v0.8.6
 	github.com/containers/image/v5 v5.35.0
 	github.com/containers/libhvee v0.10.0
 	github.com/containers/ocicrypt v1.2.1
@@ -38,7 +38,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/schema v1.4.1
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hugelgupf/p9 v0.3.1-0.20240118043522-6f4f11e5296e
+	github.com/hugelgupf/p9 v0.3.1-0.20250420164440-abc96d20b308
 	github.com/json-iterator/go v1.1.12
 	github.com/kevinburke/ssh_config v1.2.0
 	github.com/klauspost/pgzip v1.2.6
@@ -60,20 +60,20 @@ require (
 	github.com/opencontainers/selinux v1.12.0
 	github.com/openshift/imagebuilder v1.2.16-0.20250224193648-e87e4e105fd8
 	github.com/rootless-containers/rootlesskit/v2 v2.3.2
-	github.com/shirou/gopsutil/v4 v4.25.3
+	github.com/shirou/gopsutil/v4 v4.25.4
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.10.0
-	github.com/vbauerster/mpb/v8 v8.9.3
-	github.com/vishvananda/netlink v1.3.1-0.20250221194427-0af32151e72b
+	github.com/vbauerster/mpb/v8 v8.10.0
+	github.com/vishvananda/netlink v1.3.1-0.20250425193846-9d88d8385bf9
 	go.etcd.io/bbolt v1.4.0
-	golang.org/x/crypto v0.37.0
-	golang.org/x/net v0.39.0
-	golang.org/x/sync v0.13.0
-	golang.org/x/sys v0.32.0
-	golang.org/x/term v0.31.0
-	golang.org/x/text v0.24.0
+	golang.org/x/crypto v0.38.0
+	golang.org/x/net v0.40.0
+	golang.org/x/sync v0.14.0
+	golang.org/x/sys v0.33.0
+	golang.org/x/term v0.32.0
+	golang.org/x/text v0.25.0
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
