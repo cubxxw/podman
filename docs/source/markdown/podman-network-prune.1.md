@@ -17,7 +17,7 @@ the so-called default network which goes by the name of *podman*.
 
 Provide filter values.
 
-The *filters* argument format is of `key=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
+If there is more than one filter, the `--filter` option should be passed multiple times: **--filter** *label=test* **--filter** *until=10m*.
 
 Supported filters:
 

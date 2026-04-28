@@ -5,7 +5,9 @@
 #### **--filter**, **-f**=*filter*
 
 Filter what volumes are shown in the output.
-Multiple filters can be given with multiple uses of the --filter flag.
+
+If there is more than one filter, the `--filter` option should be passed multiple times: **--filter** *name=test* **--filter** *driver=local*.
+
 Filters with the same key work inclusive, with the only exception being `label`
 which is exclusive. Filters with different keys always work exclusive.
 
