@@ -292,7 +292,7 @@ function run_pod_etc_hosts_test(){
 
     # Cannot create network with the same name
     run_podman 125 network create $mynetname
-    is "$output" "Error: network name $mynetname already used: network already exists" \
+    is "$output" "Error: netavark: network already exists $mynetname" \
        "Trying to create an already-existing network"
 
     run_podman rm -t 0 -f $cid
