@@ -6,7 +6,7 @@
 
 Provide filter values.
 
-The *filters* argument format is of `key=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
+If there is more than one filter, the `--filter` option should be passed multiple times: **--filter** *name=test* **--filter** *driver=bridge*.
 
 Supported filters:
 

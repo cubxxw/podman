@@ -6,7 +6,7 @@
 
 Filter what volumes are shown in the output.
 
-The *filters* argument format is of `key=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
+If there is more than one filter, the `--filter` option should be passed multiple times: **--filter** *name=test* **--filter** *driver=local*.
 
 Filters with the same key work inclusive, with the only exception being `label`
 which is exclusive. Filters with different keys always work exclusive.
