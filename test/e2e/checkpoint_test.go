@@ -49,17 +49,13 @@ var _ = Describe("Podman checkpoint", func() {
 			Skip(fmt.Sprintf("check CRIU version error: %v", err))
 		}
 
-		session := podmanTest.Podman([]string{"network", "create"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		session := podmanTest.PodmanExitCleanly("network", "create")
 		netname = session.OutputToString()
 	})
 
 	AfterEach(func() {
 		if netname != "" {
-			session := podmanTest.Podman([]string{"network", "rm", "-f", netname})
-			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitCleanly())
+			podmanTest.PodmanExitCleanly("network", "rm", "-f", netname)
 		}
 	})
 
@@ -77,16 +73,12 @@ var _ = Describe("Podman checkpoint", func() {
 
 	It("podman checkpoint a running container by id", func() {
 		localRunString := getRunString([]string{ALPINE, "top"})
-		session := podmanTest.Podman(localRunString)
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		session := podmanTest.PodmanExitCleanly(localRunString...)
 		cid := session.OutputToString()
 
 		// Check if none of the checkpoint/restore specific information is displayed
 		// for newly started containers.
-		inspect := podmanTest.Podman([]string{"inspect", cid})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect := podmanTest.PodmanExitCleanly("inspect", cid)
 		inspectOut := inspect.InspectContainerToJSON()
 		Expect(inspectOut[0].State.Checkpointed).To(BeFalse(), ".State.Checkpointed")
 		Expect(inspectOut[0].State.Restored).To(BeFalse(), ".State.Restored")
@@ -94,24 +86,19 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(inspectOut[0].State).To(HaveField("CheckpointLog", ""))
 		Expect(inspectOut[0].State).To(HaveField("RestoreLog", ""))
 
-		result := podmanTest.Podman([]string{
+		result := podmanTest.PodmanExitCleanly(
 			"container",
 			"checkpoint",
 			"--keep",
 			cid,
-		})
-		result.WaitWithDefaultTimeout()
-
-		Expect(result).Should(ExitCleanly())
+		)
 		Expect(result.OutputToString()).To(Equal(cid))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
 
 		// For a checkpointed container we expect the checkpoint related information
 		// to be populated.
-		inspect = podmanTest.Podman([]string{"inspect", cid})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect = podmanTest.PodmanExitCleanly("inspect", cid)
 		inspectOut = inspect.InspectContainerToJSON()
 		Expect(inspectOut[0].State.Checkpointed).To(BeTrue(), ".State.Checkpointed")
 		Expect(inspectOut[0].State.Restored).To(BeFalse(), ".State.Restored")
@@ -124,22 +111,17 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitWithError(125, "--publish can only be used with image or --import"))
 
-		result = podmanTest.Podman([]string{
+		result = podmanTest.PodmanExitCleanly(
 			"container",
 			"restore",
 			"--keep",
 			cid,
-		})
-		result.WaitWithDefaultTimeout()
-
-		Expect(result).Should(ExitCleanly())
+		)
 		Expect(result.OutputToString()).To(Equal(cid))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 
-		inspect = podmanTest.Podman([]string{"inspect", cid})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect = podmanTest.PodmanExitCleanly("inspect", cid)
 		inspectOut = inspect.InspectContainerToJSON()
 		Expect(inspectOut[0].State.Restored).To(BeTrue(), ".State.Restored")
 		Expect(inspectOut[0].State.Checkpointed).To(BeFalse(), ".State.Checkpointed")
@@ -150,21 +132,17 @@ var _ = Describe("Podman checkpoint", func() {
 		podmanTest.StopContainer(cid)
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 
-		result = podmanTest.Podman([]string{
+		podmanTest.PodmanExitCleanly(
 			"container",
 			"start",
 			cid,
-		})
-		result.WaitWithDefaultTimeout()
+		)
 
-		Expect(result).Should(ExitCleanly())
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 
 		// Stopping and starting the container should remove all checkpoint
 		// related information from inspect again.
-		inspect = podmanTest.Podman([]string{"inspect", cid})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect = podmanTest.PodmanExitCleanly("inspect", cid)
 		inspectOut = inspect.InspectContainerToJSON()
 		Expect(inspectOut[0].State.Checkpointed).To(BeFalse(), ".State.Checkpointed")
 		Expect(inspectOut[0].State.Restored).To(BeFalse(), ".State.Restored")
@@ -337,17 +315,13 @@ var _ = Describe("Podman checkpoint", func() {
 
 	It("podman checkpoint container with established tcp connections", func() {
 		localRunString := getRunString([]string{REDIS_IMAGE})
-		session := podmanTest.Podman(localRunString)
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		session := podmanTest.PodmanExitCleanly(localRunString...)
 		cid := session.OutputToString()
 		if !WaitContainerReady(podmanTest, cid, "Ready to accept connections", 20, 1) {
 			Fail("Container failed to get ready")
 		}
 
-		IP := podmanTest.Podman([]string{"inspect", cid, fmt.Sprintf("--format={{(index .NetworkSettings.Networks \"%s\").IPAddress}}", netname)})
-		IP.WaitWithDefaultTimeout()
-		Expect(IP).Should(ExitCleanly())
+		IP := podmanTest.PodmanExitCleanly("inspect", cid, fmt.Sprintf("--format={{(index .NetworkSettings.Networks \"%s\").IPAddress}}", netname))
 
 		// Open a network connection to the redis server
 		conn, err := net.DialTimeout("tcp4", IP.OutputToString()+":6379", time.Duration(3)*time.Second)
@@ -364,10 +338,8 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 
 		// Now it should work thanks to "--tcp-established"
-		result = podmanTest.Podman([]string{"container", "checkpoint", cid, "--tcp-established"})
-		result.WaitWithDefaultTimeout()
+		podmanTest.PodmanExitCleanly("container", "checkpoint", cid, "--tcp-established")
 
-		Expect(result).Should(ExitCleanly())
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
 
@@ -389,17 +361,9 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
 
 		// Now it should work thanks to "--tcp-established"
-		result = podmanTest.Podman([]string{"container", "restore", cid, "--tcp-established"})
-		result.WaitWithDefaultTimeout()
-
-		Expect(result).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("container", "restore", cid, "--tcp-established")
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
-
-		result = podmanTest.Podman([]string{"rm", "-t", "0", "-fa"})
-		result.WaitWithDefaultTimeout()
-		Expect(result).Should(ExitCleanly())
-		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 
 		conn.Close()
 	})
@@ -407,9 +371,7 @@ var _ = Describe("Podman checkpoint", func() {
 	It("podman restore container with tcp-close", func() {
 		// Start a container with redis (which listens on tcp port)
 		localRunString := getRunString([]string{REDIS_IMAGE})
-		session := podmanTest.Podman(localRunString)
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		session := podmanTest.PodmanExitCleanly(localRunString...)
 		cid := session.OutputToString()
 		if !WaitContainerReady(podmanTest, cid, "Ready to accept connections", 20, 1) {
 			Fail("Container failed to get ready")
