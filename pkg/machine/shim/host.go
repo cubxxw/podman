@@ -42,7 +42,8 @@ func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.
 		return nil, err
 	}
 	for name, mc := range mcs {
-		state, err := mc.Provider.State(mc.MachineConfig, false)
+		// set bypass=true so it doesn't fail the entire list if one provider can't determine state
+		state, err := mc.Provider.State(mc.MachineConfig, true)
 		if err != nil {
 			return nil, err
 		}
