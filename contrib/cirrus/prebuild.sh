@@ -35,16 +35,6 @@ if grep -n ^$'\t' test/system/*; then
     die "Found leading tabs in system tests. Use spaces to indent, not tabs."
 fi
 
-# Lookup 'env' dict. string value from key specified as argument from YAML file.
-get_env_key() {
-    local yaml
-    local script
-
-    yaml="$CIRRUS_WORKING_DIR/.github/workflows/scan-secrets.yml"
-    script="from yaml import safe_load; print(safe_load(open('$yaml'))['env']['$1'])"
-    python -c "$script"
-}
-
 # Only need to check CI-stuffs on a single build-task, there's
 # generally one latest fedora task so use that one. In some cases
 # when we have to drop testing for the prior fedora task we may
