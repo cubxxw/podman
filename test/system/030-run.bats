@@ -393,7 +393,7 @@ EOF
         tests="
                 |  /home/podman /home/podman /home/podman    | no vol mount
 /home/x$whoami  |  /home/podman /home/podman /home/podman    | bad vol mount
-/home/$whoami   |  /home/podman /home/$whoami /home/$whoami  | vol mount
+$HOME           |  /home/podman $HOME $HOME                  | vol mount
 "
         while read vol expect name; do
             opts=
