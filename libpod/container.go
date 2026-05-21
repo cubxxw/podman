@@ -1080,7 +1080,7 @@ func (c *Container) StartupHCPassed() (bool, error) {
 
 // NamespacePath returns the path of one of the container's namespaces
 // If the container is not running, an error will be returned
-func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:interfacer
+func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -1094,7 +1094,7 @@ func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:in
 
 // namespacePath returns the path of one of the container's namespaces
 // If the container is not running, an error will be returned
-func (c *Container) namespacePath(linuxNS LinuxNS) (string, error) { //nolint:interfacer
+func (c *Container) namespacePath(linuxNS LinuxNS) (string, error) {
 	if c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused {
 		return "", fmt.Errorf("cannot get namespace path unless container %s is running: %w", c.ID(), define.ErrCtrStopped)
 	}
