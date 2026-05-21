@@ -52,7 +52,7 @@ func TryJoinPauseProcess(stateDir string) (bool, int, error) {
 	pidFileLock, err := lockfile.GetLockFile(pausePidPath)
 	if err != nil {
 		// The file was deleted by another process.
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return false, -1, nil
 		}
 		return false, -1, fmt.Errorf("acquiring lock on %s: %w", pausePidPath, err)

@@ -404,7 +404,7 @@ func (c *Container) specFromState() (*spec.Spec, error) {
 			logrus.Warnf("Error unmarshalling container %s config: %v", c.ID(), err)
 			return c.config.Spec, nil
 		}
-	} else if !os.IsNotExist(err) {
+	} else if !errors.Is(err, os.ErrNotExist) {
 		// ignore when the file does not exist
 		return nil, fmt.Errorf("opening container config: %w", err)
 	}

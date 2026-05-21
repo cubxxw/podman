@@ -621,7 +621,7 @@ func (p *PodmanTestIntegration) createArtifact(image string) {
 		return
 	}
 	destName := imageTarPath(image)
-	if _, err := os.Stat(destName); os.IsNotExist(err) {
+	if _, err := os.Stat(destName); errors.Is(err, os.ErrNotExist) {
 		GinkgoWriter.Printf("Caching %s at %s...\n", image, destName)
 
 		p.pullImage(image, false)
