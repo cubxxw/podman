@@ -29,7 +29,7 @@ func getCPUUtilization() (*define.CPUUsage, error) {
 	var total uint64 = 0
 	var times [unix.CPUSTATES]uint64
 
-	for i := 0; i < unix.CPUSTATES; i++ {
+	for i := range unix.CPUSTATES {
 		val := *(*uint64)(unsafe.Pointer(&buf[8*i]))
 		times[i] = val
 		total += val
