@@ -193,7 +193,7 @@ func AddPolicyEntries(policyPath string, input AddPolicyEntriesInput) error {
 	}
 
 	err = fileutils.Exists(policyPath)
-	if !os.IsNotExist(err) {
+	if !errors.Is(err, os.ErrNotExist) {
 		policyContent, err := os.ReadFile(policyPath)
 		if err != nil {
 			return err

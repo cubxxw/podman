@@ -4,6 +4,7 @@ package integration
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -464,7 +465,7 @@ RUN exit 5`, CITEST_IMAGE)
 		// Write target and fake files
 		targetSubPath := filepath.Join(podmanTest.TempDir, "emptydir")
 		if _, err = os.Stat(targetSubPath); err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, os.ErrNotExist) {
 				err = os.Mkdir(targetSubPath, 0o755)
 				Expect(err).ToNot(HaveOccurred())
 			}

@@ -541,7 +541,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 			continue
 		}
 		if err := os.MkdirAll(vol, 0o755); err != nil {
-			if !os.IsExist(err) {
+			if !errors.Is(err, os.ErrExist) {
 				return nil, nil, fmt.Errorf("making volume mountpoint for volume %s: %w", vol, err)
 			}
 		}
