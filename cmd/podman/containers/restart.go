@@ -107,7 +107,7 @@ func restart(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("reading CIDFile: %w", err)
 		}
-		id := strings.Split(string(content), "\n")[0]
+		id, _, _ := strings.Cut(string(content), "\n")
 		args = append(args, id)
 	}
 
