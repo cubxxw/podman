@@ -361,7 +361,7 @@ func ParseImageSCPArg(arg string) (*entities.ScpTransferImageOptions, []string, 
 
 	switch {
 	case strings.Contains(arg, "@localhost::"): // image transfer between users
-		location.User = strings.Split(arg, "@")[0]
+		location.User, _, _ = strings.Cut(arg, "@")
 		location, err = ValidateImagePortion(location, arg)
 		if err != nil {
 			return nil, nil, err

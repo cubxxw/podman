@@ -228,7 +228,7 @@ func determineTargetCtrAndCmd(args []string, latestSpecified bool, execCidFilePr
 			if err != nil {
 				return "", nil, fmt.Errorf("reading CIDFile: %w", err)
 			}
-			nameOrID = strings.Split(string(content), "\n")[0]
+			nameOrID, _, _ = strings.Cut(string(content), "\n")
 		}
 	}
 	return nameOrID, command, nil

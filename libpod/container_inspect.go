@@ -384,7 +384,7 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 		envSecrets := c.config.EnvSecrets
 		for envIndex, envValue := range ctrConfig.Env {
 			// env variables come in the style `name=value`
-			envName := strings.Split(envValue, "=")[0]
+			envName, _, _ := strings.Cut(envValue, "=")
 
 			_, ok := envSecrets[envName]
 			if ok {
