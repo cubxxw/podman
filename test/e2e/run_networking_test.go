@@ -1068,7 +1068,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 			}
 		}
 		conffile := filepath.Join(podmanTest.TempDir, forwarder+"-forwarder.conf")
-		err := os.WriteFile(conffile, []byte(fmt.Sprintf("[network]\nrootless_port_forwarder=\"%s\"\n", forwarder)), 0o755)
+		err := os.WriteFile(conffile, fmt.Appendf(nil, "[network]\nrootless_port_forwarder=\"%s\"\n", forwarder), 0o755)
 		Expect(err).ToNot(HaveOccurred())
 		GinkgoT().Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
 		if IsRemote() {
