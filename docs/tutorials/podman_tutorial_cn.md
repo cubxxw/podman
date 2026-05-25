@@ -40,16 +40,19 @@ podman ps
 
 ### 查看正在运行的容器
 
-你可以 "inspect" (查看)一个正在运行的容器的元数据以及其他详细信息。我们甚至可以使用 inspect 的子命令查看分配给容器的 IP 地址。由于容器以非 root 模式运行，没有分配 IP 地址，inspect 的输出会是 "
-none" 。
+你可以 "inspect" (查看)一个正在运行的容器的元数据以及其他详细信息。我们甚至可以使用 inspect 的子命令查看分配给容器的 IP 地址。由于容器以非 root 模式运行，通常不会分配 IP 地址，该字段可能为空。
 
 ```console
-podman inspect -l | grep IPAddress\":
-            "SecondaryIPAddresses": null,
-            "IPAddress": "",
+podman inspect basic_httpd --format 'IP address: {{.NetworkSettings.IPAddress}}'
 ```
 
-**注意**：*-l* 参数是**最近的容器**的指代，你也可以使用容器的ID 代替 *-l*
+示例输出（非 root 模式）：
+
+```text
+IP address:
+```
+
+**注意**：你也可以使用 *-l* 查看**最近的容器**，或使用容器 ID 代替容器名称。
 
 ### 测试httpd服务器
 
@@ -65,6 +68,11 @@ curl http://localhost:8080
 
 ```console
 podman logs --latest
+```
+
+示例输出：
+
+```text
 10.88.0.1 - - [07/Feb/2018:15:22:11 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
 10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
 10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
@@ -78,6 +86,11 @@ podman logs --latest
 
 ```console
 podman top <container_id>
+```
+
+示例输出：
+
+```text
   UID   PID  PPID  C STIME TTY          TIME CMD
     0 31873 31863  0 09:21 ?        00:00:00 nginx: master process nginx -g daemon off;
   101 31889 31873  0 09:21 ?        00:00:00 nginx: worker process

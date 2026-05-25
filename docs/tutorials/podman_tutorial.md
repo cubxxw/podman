@@ -36,11 +36,15 @@ podman ps
 Note: If you add *-a* to the *ps* command, Podman will show all containers.
 ### Inspecting a running container
 You can "inspect" a running container for metadata and details about itself.  We can even use
-the inspect subcommand to see what IP address was assigned to the container. As the container is running in rootless mode, an IP address is not assigned and the value will be listed as "none" in the output from inspect.
+the inspect subcommand to see what IP address was assigned to the container. As the container is running in rootless mode, an IP address is often not assigned and the field may be empty.
 ```console
-podman inspect basic_httpd | grep IPAddress\":
-            "SecondaryIPAddresses": null,
-            "IPAddress": "",
+podman inspect basic_httpd --format 'IP address: {{.NetworkSettings.IPAddress}}'
+```
+
+Example output (rootless):
+
+```text
+IP address:
 ```
 
 ### Testing the httpd server
@@ -55,6 +59,11 @@ curl http://localhost:8080
 You can view the container's logs with Podman as well:
 ```console
 podman logs <container_id>
+```
+
+Example output:
+
+```text
 10.88.0.1 - - [07/Feb/2018:15:22:11 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
 10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
 10.88.0.1 - - [07/Feb/2018:15:22:30 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.55.1" "-"
@@ -66,6 +75,11 @@ podman logs <container_id>
 And you can observe the httpd pid in the container with *top*.
 ```console
 podman top <container_id>
+```
+
+Example output:
+
+```text
   UID   PID  PPID  C STIME TTY          TIME CMD
     0 31873 31863  0 09:21 ?        00:00:00 nginx: master process nginx -g daemon off;
   101 31889 31873  0 09:21 ?        00:00:00 nginx: worker process
