@@ -19,6 +19,7 @@ concurrency:
 jobs:
   path-filter:
     runs-on: ubuntu-latest
+    if: github.repository == 'podman-container-tools/podman'
     outputs:
       all: ${{ steps.filter.outputs.all }}
       code: ${{ steps.filter.outputs.code }}
@@ -46,6 +47,7 @@ jobs:
   validate-source:
     name: Validate source code changes
     runs-on: cncf-ubuntu-8-32-x86
+    if: github.repository == 'podman-container-tools/podman'
     permissions:
       pull-requests: read # For hack/ci/pr-should-include-tests to query PR labels.
     env:
@@ -183,6 +185,7 @@ jobs:
   build-alt:
     name: Cross Build (Linux, FreeBSD)
     runs-on: cncf-ubuntu-16-64-x86
+    if: github.repository == 'podman-container-tools/podman'
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -196,6 +199,7 @@ jobs:
 
   build:
     name: build ${{ matrix.distro }}
+    if: github.repository == 'podman-container-tools/podman'
     strategy:
       fail-fast: false
       matrix:
@@ -210,6 +214,7 @@ jobs:
   windows-installer:
     name: windows installer ${{ matrix.provider }}
     runs-on: windows-2025-vs2026
+    if: github.repository == 'podman-container-tools/podman'
     timeout-minutes: 20
     permissions:
       contents: read
@@ -285,6 +290,7 @@ jobs:
   macos-installer:
     name: macos installer
     runs-on: macos-26
+    if: github.repository == 'podman-container-tools/podman'
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
