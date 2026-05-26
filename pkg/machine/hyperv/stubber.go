@@ -33,7 +33,7 @@ type HyperVStubber struct {
 
 type permissionChecks struct {
 	isElevatedProcess   func() bool
-	isHyperVAdminMember func() bool
+	isHyperVAdminMember func() error
 	vsockEntriesExist   func(int) bool
 	existingMachinesNum func() (int, error)
 }
@@ -41,7 +41,7 @@ type permissionChecks struct {
 func (h HyperVStubber) defaultPermissionChecks() permissionChecks {
 	return permissionChecks{
 		isElevatedProcess:   windows.HasAdminRights,
-		isHyperVAdminMember: IsHyperVAdminsGroupMember,
+		isHyperVAdminMember: VerifyHyperVPermissions,
 		vsockEntriesExist:   vsock.CheckIfHVSockRegistryEntriesExist,
 		existingMachinesNum: h.countMachinesWithToolname,
 	}
@@ -296,10 +296,7 @@ func checkCanCreate(checks permissionChecks, mounts int) error {
 	if !checks.vsockEntriesExist(mounts) {
 		return ErrHypervRegistryInitRequiresElevation
 	}
-	if !checks.isHyperVAdminMember() {
-		return ErrHypervUserNotInAdminGroup
-	}
-	return nil
+	return checks.isHyperVAdminMember()
 }
 
 // launchElevate attempts to automatically re-run the command as administrator
@@ -359,8 +356,8 @@ func checkCanRemove(mc *vmconfigs.MachineConfig, checks permissionChecks) error 
 	if isLegacyMachine(mc) {
 		return ErrHypervLegacyMachineRequiresElevation
 	}
-	if !checks.isHyperVAdminMember() {
-		return ErrHypervUserNotInAdminGroup
+	if err := checks.isHyperVAdminMember(); err != nil {
+		return err
 	}
 	machines, err := checks.existingMachinesNum()
 	if err != nil {
@@ -541,11 +538,14 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 // State is returns the state as a define.status.  for hyperv, state differs from others because
 // state is determined by the VM itself.  normally this can be done with vm.State() and a conversion
 // but doing here as well.  this requires a little more interaction with the hypervisor
-func (h HyperVStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Status, error) {
+func (h HyperVStubber) State(mc *vmconfigs.MachineConfig, bypass bool) (define.Status, error) {
 	// If the user does not have permissions, WMI will fail with an error anyway.
-	// Just return Unknown.
-	if !windows.HasAdminRights() && !IsHyperVAdminsGroupMember() {
-		return define.Unknown, nil
+	if err := VerifyHyperVPermissions(); err != nil {
+		if bypass {
+			logrus.Warnf("unable to get state for machine %s: %v", mc.Name, err)
+			return define.Unknown, nil
+		}
+		return define.Unknown, fmt.Errorf("unable to get state for machine %s: %w", mc.Name, err)
 	}
 
 	_, vm, err := GetVMFromMC(mc)
