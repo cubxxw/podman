@@ -308,6 +308,10 @@ func LibpodToContainer(l *libpod.Container, sz bool, includeHealth bool) (*handl
 		sizeRW     int64
 		state      define.ContainerStatus
 		status     string
+		hostConfig = struct {
+			NetworkMode string            `json:",omitempty"`
+			Annotations map[string]string `json:",omitempty"`
+		}{}
 	)
 
 	if state, err = l.State(); err != nil {
@@ -453,33 +457,31 @@ func LibpodToContainer(l *libpod.Container, sz bool, includeHealth bool) (*handl
 		}
 	}
 
+	hc := inspect.HostConfig
+	if hc != nil {
+		hostConfig.NetworkMode = inspect.HostConfig.NetworkMode
+		hostConfig.Annotations = inspect.HostConfig.Annotations
+	}
+
 	return &handlers.Container{
 		Summary: container.Summary{
-			ID:         l.ID(),
-			Names:      []string{fmt.Sprintf("/%s", l.Name())},
-			Image:      imageName,
-			ImageID:    "sha256:" + imageID,
-			Command:    strings.Join(l.Command(), " "),
-			Created:    l.CreatedTime().Unix(),
-			Ports:      ports,
-			SizeRw:     sizeRW,
-			SizeRootFs: sizeRootFs,
-			Labels:     l.Labels(),
-			State:      container.ContainerState(stateStr),
-			Status:     status,
-			Health:     healthSummary,
-			// FIXME: this seems broken, the field is never shown in the API output.
-			HostConfig: struct {
-				NetworkMode string            `json:",omitempty"`
-				Annotations map[string]string `json:",omitempty"`
-			}{
-				NetworkMode: "host",
-				// TODO: add annotations here for >= v1.46
-			},
+			ID:              l.ID(),
+			Names:           []string{fmt.Sprintf("/%s", l.Name())},
+			Image:           imageName,
+			ImageID:         "sha256:" + imageID,
+			Command:         strings.Join(l.Command(), " "),
+			Created:         l.CreatedTime().Unix(),
+			Ports:           ports,
+			SizeRw:          sizeRW,
+			SizeRootFs:      sizeRootFs,
+			Labels:          l.Labels(),
+			State:           container.ContainerState(stateStr),
+			Status:          status,
+			Health:          healthSummary,
+			HostConfig:      hostConfig,
 			NetworkSettings: &networkSettings,
 			Mounts:          mounts,
 		},
-		ContainerCreateConfig: handlers.ContainerCreateConfig{},
 	}, nil
 }
 
