@@ -287,6 +287,9 @@ endif
 .PHONY: golangci-lint
 golangci-lint: .install.golangci-lint
 	hack/golangci-lint.sh
+	CGO_ENABLED=0 GOOS=windows hack/golangci-lint.sh
+	CGO_ENABLED=0 GOOS=freebsd hack/golangci-lint.sh
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 hack/golangci-lint.sh
 
 .PHONY: test/checkseccomp/checkseccomp
 test/checkseccomp/checkseccomp: $(wildcard test/checkseccomp/*.go)
