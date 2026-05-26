@@ -9,6 +9,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -111,8 +112,7 @@ func (g *unitGroup) add(key string, value string) {
 }
 
 func (g *unitGroup) findLast(key string) *unitLine {
-	for i := len(g.lines) - 1; i >= 0; i-- {
-		l := g.lines[i]
+	for _, l := range slices.Backward(g.lines) {
 		if l.isKey(key) {
 			return l
 		}
@@ -931,8 +931,8 @@ func (f *UnitFile) PrependComment(groupName string, comments ...string) {
 		group = f.ensureGroup(groupName)
 	}
 	// Prepend in reverse order to keep argument order
-	for i := len(comments) - 1; i >= 0; i-- {
-		group.prependComment(newUnitLine("", "# "+comments[i], true))
+	for _, v := range slices.Backward(comments) {
+		group.prependComment(newUnitLine("", "# "+v, true))
 	}
 }
 

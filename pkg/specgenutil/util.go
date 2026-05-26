@@ -21,7 +21,8 @@ func ReadPodIDFile(path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("reading pod ID file: %w", err)
 	}
-	return strings.Split(string(content), "\n")[0], nil
+	id, _, _ := strings.Cut(string(content), "\n")
+	return id, nil
 }
 
 // ReadPodIDFiles reads the specified files and returns their content (i.e.,

@@ -417,12 +417,8 @@ func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, ins
 // ensuring it does not already exist (idempotency).
 func appendLineToFile(path, text string) error {
 	content, err := os.ReadFile(path)
-	if err == nil {
-		for _, line := range strings.Split(string(content), "\n") {
-			if line == text {
-				return nil // Already exists, do nothing
-			}
-		}
+	if err == nil && slices.Contains(strings.Split(string(content), "\n"), text) {
+		return nil // Already exists, do nothing
 	}
 
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)

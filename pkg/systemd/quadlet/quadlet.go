@@ -796,7 +796,8 @@ func ConvertContainer(container *parser.UnitFile, unitsInfoMap map[string]*UnitI
 	for _, device := range devices {
 		if device[0] == '-' {
 			device = device[1:]
-			_, err := os.Stat(strings.Split(device, ":")[0])
+			file, _, _ := strings.Cut(device, ":")
+			_, err := os.Stat(file)
 			if errors.Is(err, os.ErrNotExist) {
 				continue
 			}

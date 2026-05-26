@@ -885,8 +885,8 @@ func transferRootful(source entities.ScpTransferImageOptions, dest entities.ScpT
 	var uSave *user.User
 	var uLoad *user.User
 	var err error
-	source.User = strings.Split(source.User, ":")[0] // split in case provided with uid:gid
-	dest.User = strings.Split(dest.User, ":")[0]
+	source.User, _, _ = strings.Cut(source.User, ":") // In case of uid:gid.
+	dest.User, _, _ = strings.Cut(dest.User, ":")
 	uSave, err = lookupUser(source.User)
 	if err != nil {
 		return err

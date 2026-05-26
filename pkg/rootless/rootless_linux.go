@@ -316,7 +316,7 @@ func becomeRootInUserNS(stateDir string) (_ bool, _ int, retErr error) {
 		}
 		logrus.Debugf("write setgroups file exited with 0")
 
-		err = os.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Geteuid())), 0o666)
+		err = os.WriteFile(uidMap, fmt.Appendf(nil, "%d %d 1\n", 0, os.Geteuid()), 0o666)
 		if err != nil {
 			return false, -1, fmt.Errorf("cannot write uid_map: %w", err)
 		}
@@ -336,7 +336,7 @@ func becomeRootInUserNS(stateDir string) (_ bool, _ int, retErr error) {
 		gidsMapped = err == nil
 	}
 	if !gidsMapped {
-		err = os.WriteFile(gidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getegid())), 0o666)
+		err = os.WriteFile(gidMap, fmt.Appendf(nil, "%d %d 1\n", 0, os.Getegid()), 0o666)
 		if err != nil {
 			return false, -1, fmt.Errorf("cannot write gid_map: %w", err)
 		}
@@ -378,7 +378,7 @@ func becomeRootInUserNS(stateDir string) (_ bool, _ int, retErr error) {
 
 func waitAndProxySignalsToChild(pid C.int) (bool, int, error) {
 	signals := []os.Signal{}
-	for sig := 0; sig < numSig; sig++ {
+	for sig := range numSig {
 		if sig == int(unix.SIGTSTP) {
 			continue
 		}
@@ -429,7 +429,7 @@ func isPauseProcess(pid int) bool {
 	if err != nil {
 		return false
 	}
-	for _, entry := range bytes.Split(data, []byte{0}) {
+	for entry := range bytes.SplitSeq(data, []byte{0}) {
 		if string(entry) == "_PODMAN_PAUSE=1" {
 			return true
 		}
