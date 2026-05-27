@@ -198,9 +198,7 @@ load helpers
         sleep 0.5
     done
 
-    # Other commands can acquire the lock
-    run_podman ps -a
-
+    # This command must be able to take the container lock.
     # The container state transitioned to "stopping"
     run_podman inspect --format '{{.State.Status}}' $ctrname
     is "$output" "stopping" "Status of container should be 'stopping'"
