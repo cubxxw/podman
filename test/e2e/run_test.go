@@ -2331,6 +2331,8 @@ WORKDIR /madethis`, BB)
 	})
 
 	It("podman run --shm-size-systemd", func() {
+		// I can reproduce this locally with sudo make localintegration FOCUS="podman run --shm-size-systemd"
+		SkipIfNotRootless("FIXME: This fails with 'Failed to set RLIMIT_CORE: Operation not permitted' printed in the container logs")
 		ctrName := "testShmSizeSystemd"
 		run := podmanTest.Podman([]string{"run", "--name", ctrName, "--shm-size-systemd", "10mb", "-d", SYSTEMD_IMAGE, "/sbin/init"})
 		run.WaitWithDefaultTimeout()

@@ -430,7 +430,7 @@ function _check_health_log {
     hcStatus=$PODMAN_TMPDIR/hcStatus
 
     run_podman run -d --name $ctr             \
-           --health-cmd "sleep 20; echo $msg" \
+           --health-cmd "touch /tmp/abc; sleep 20; echo $msg" \
            $IMAGE /home/podman/pause
 
     timeout --foreground -v --kill=10 60 \
@@ -439,6 +439,24 @@ function _check_health_log {
 
     run_podman inspect $ctr --format "{{.State.Status}}"
     assert "$output" == "running" "Container is running"
+
+    ### Flake, sometimes it is possible that the background healthcheck runs so slow that
+    # it starts after the podman stop below and then fails with
+    # "can only create exec sessions on running containers: container state improper".
+    # To fix this we wait for a file th healthcheck creates right away to know it is running.
+    timeout=5
+    while :; do
+        run_podman '?' exec $ctr cat /tmp/abc
+        if [[ "$status" -eq 0 ]]; then
+                break
+        fi
+
+        timeout=$((timeout - 1))
+        if [[ $timeout -eq 0 ]]; then
+            die "timed out waiting for healthcheck to run and create test file"
+        fi
+        sleep 1
+    done
 
     run_podman stop $ctr
 
