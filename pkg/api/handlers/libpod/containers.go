@@ -533,8 +533,13 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 // parseRLimits parses slice of WirePOSIXRlimit to slice of specs.POSIXRlimit.
+// Returns nil when rLimits is empty so that the caller can distinguish if
+// limits are set. Otherwise rlimits will be wiped on every run.
 func parseRLimits(rLimits []WirePOSIXRlimit) ([]specs.POSIXRlimit, error) {
-	rl := []specs.POSIXRlimit{}
+	if len(rLimits) == 0 {
+		return nil, nil
+	}
+	rl := make([]specs.POSIXRlimit, 0, len(rLimits))
 	for _, rLimit := range rLimits {
 		if rLimit.Type == "" {
 			return nil, fmt.Errorf("invalid value for POSIXRlimit.type: empty")
