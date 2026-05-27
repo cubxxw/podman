@@ -48,7 +48,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 		}
 	}
 
-	if c.state.State == define.ContainerStateRunning && options.Pause {
+	if (c.state.State == define.ContainerStateRunning || c.state.State == define.ContainerStateStopping) && options.Pause {
 		if err := c.pause(); err != nil {
 			return nil, fmt.Errorf("pausing container %q to commit: %w", c.ID(), err)
 		}
