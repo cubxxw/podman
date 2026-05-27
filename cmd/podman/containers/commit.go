@@ -77,7 +77,7 @@ func commitFlags(cmd *cobra.Command) {
 	flags.StringVarP(&commitOptions.Author, authorFlagName, "a", "", "Set the author for the image committed")
 	_ = cmd.RegisterFlagCompletionFunc(authorFlagName, completion.AutocompleteNone)
 
-	flags.BoolVarP(&commitOptions.Pause, "pause", "p", false, "Pause container during commit")
+	flags.BoolVarP(&commitOptions.Pause, "pause", "p", true, "Pause container during commit")
 	flags.BoolVarP(&commitOptions.Quiet, "quiet", "q", false, "Suppress output")
 	flags.BoolVarP(&commitOptions.Squash, "squash", "s", false, "squash newly built layers into a single new layer")
 	flags.BoolVar(&commitOptions.IncludeVolumes, "include-volumes", false, "Include container volumes as image volumes")

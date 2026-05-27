@@ -9,7 +9,7 @@ podman\-commit - Create new image based on the changed container
 **podman container commit** [*options*] *container* [*image*]
 
 ## DESCRIPTION
-**podman commit** creates an image based on a changed *container*. The author of the image can be set using the **--author** OPTION. Various image instructions can be configured with the **--change** OPTION and a commit message can be set using the **--message** OPTION. The *container* and its processes aren't paused while the image is committed. If this is not desired, the **--pause** OPTION can be set to *true*. When the commit is complete, Podman prints out the ID of the new image.
+**podman commit** creates an image based on a changed *container*. The author of the image can be set using the **--author** OPTION. Various image instructions can be configured with the **--change** OPTION and a commit message can be set using the **--message** OPTION. The *container* and its processes are paused while the image is committed. If this is not desired, the **--pause** OPTION can be set to *false*. When the commit is complete, Podman prints out the ID of the new image.
 
 If `image` does not begin with a registry name component, `localhost` is added to the name.
 If `image` is not provided, the values for the `REPOSITORY` and `TAG` values of the created image is set to `<none>`.
@@ -64,8 +64,9 @@ Set commit message for committed image.\
 
 #### **--pause**, **-p**
 
-Pause the container when creating an image.\
-The default is **false**.
+Pause the container when creating an image.
+Pausing a running container during commit prevents race conditions and potential security issues caused by other processes accessing the container's rootfs while the image is being created.\
+The default is **true**.
 
 #### **--quiet**, **-q**
 
@@ -104,9 +105,9 @@ $ podman commit -q --author "firstName lastName" reverent_golick image-committed
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
-Pause running container while creating image:
+Commit running container without pausing:
 ```
-$ podman commit -q --pause=true containerID image-committed
+$ podman commit -q --pause=false containerID image-committed
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
