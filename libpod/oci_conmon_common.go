@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -79,20 +80,6 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 		return nil, fmt.Errorf("the OCI runtime must be provided a non-empty name: %w", define.ErrInvalidArg)
 	}
 
-	// Make lookup tables for runtime support
-	supportsJSON := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsJSON.Get()))
-	supportsNoCgroups := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsNoCgroups.Get()))
-	supportsKVM := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsKVM.Get()))
-	for _, r := range runtimeCfg.Engine.RuntimeSupportsJSON.Get() {
-		supportsJSON[r] = true
-	}
-	for _, r := range runtimeCfg.Engine.RuntimeSupportsNoCgroups.Get() {
-		supportsNoCgroups[r] = true
-	}
-	for _, r := range runtimeCfg.Engine.RuntimeSupportsKVM.Get() {
-		supportsKVM[r] = true
-	}
-
 	configIndex := filepath.Base(name)
 
 	if len(runtimeFlags) == 0 {
@@ -116,9 +103,9 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	// TODO: probe OCI runtime for feature and enable automatically if
 	// available.
 
-	runtime.supportsJSON = supportsJSON[configIndex]
-	runtime.supportsNoCgroups = supportsNoCgroups[configIndex]
-	runtime.supportsKVM = supportsKVM[configIndex]
+	runtime.supportsJSON = slices.Contains(runtimeCfg.Engine.RuntimeSupportsJSON.Get(), configIndex)
+	runtime.supportsNoCgroups = slices.Contains(runtimeCfg.Engine.RuntimeSupportsNoCgroups.Get(), configIndex)
+	runtime.supportsKVM = slices.Contains(runtimeCfg.Engine.RuntimeSupportsKVM.Get(), configIndex)
 
 	foundPath := false
 	for _, path := range paths {
