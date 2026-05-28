@@ -116,8 +116,8 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 		cliVals.Rm = true
 	}
-	// TODO: Breaking change should be made fatal in next major Release
-	if cliVals.TTY && cliVals.Interactive && !term.IsTerminal(int(os.Stdin.Fd())) {
+
+	if cliVals.TTY && cliVals.Interactive && !runOpts.Detach && !term.IsTerminal(int(os.Stdin.Fd())) {
 		logrus.Warnf("The input device is not a TTY. The --tty and --interactive flags might not work properly")
 	}
 

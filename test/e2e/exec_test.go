@@ -342,11 +342,12 @@ var _ = Describe("Podman exec", func() {
 
 	// #10927 ("no logs from conmon"), one of our nastiest flakes
 	It("podman exec terminal doesn't hang", FlakeAttempts(3), func() {
-		setup := podmanTest.Podman([]string{"run", "-dti", "--name", "test1", FEDORA_MINIMAL, "sleep", "+Inf"})
+		setup := podmanTest.Podman([]string{"run", "-ti", "--rm", "--name", "test1", FEDORA_MINIMAL, "true"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(Exit(0))
 		Expect(setup.ErrorToString()).To(ContainSubstring("The input device is not a TTY. The --tty and --interactive flags might not work properly"))
 
+		podmanTest.PodmanExitCleanly("run", "-dti", "--name", "test1", FEDORA_MINIMAL, "sleep", "+Inf")
 		for range 5 {
 			session := podmanTest.Podman([]string{"exec", "-ti", "test1", "true"})
 			session.WaitWithDefaultTimeout()
