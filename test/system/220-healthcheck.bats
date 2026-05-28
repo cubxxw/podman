@@ -429,6 +429,8 @@ function _check_health_log {
     msg="hc-msg-$(random_string)"
     hcStatus=$PODMAN_TMPDIR/hcStatus
 
+    # Disable systemd healthcheck in the background as they mess up the timings of the manual commands.
+    export DISABLE_HC_SYSTEMD="true"
     run_podman run -d --name $ctr             \
            --health-cmd "touch /tmp/abc; sleep 20; echo $msg" \
            $IMAGE /home/podman/pause
