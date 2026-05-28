@@ -10,8 +10,9 @@ set -e
 
 declare -a EXTRA_TAGS
 
-# Prefer the one from $PATH, if available.
-BIN="$(command -v golangci-lint || echo ./bin/golangci-lint)"
+# This is where hack/install_golangci.sh install it.
+# Prefer the one from ./bin, if available.
+BIN="$(command -v ./bin/golangci-lint golangci-lint | head -1)"
 
 echo "Linting for GOOS=$GOOS"
 case "$GOOS" in
