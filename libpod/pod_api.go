@@ -625,10 +625,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 	}
 	slices.SortFunc(ctrs, func(a, b define.InspectPodContainerInfo) int { return strings.Compare(a.ID, b.ID) })
 
-	podState, err := createPodStatusResults(ctrStatuses)
-	if err != nil {
-		return nil, err
-	}
+	podState := createPodStatusResults(ctrStatuses)
 
 	namespaces := map[string]bool{
 		"pid":    p.config.UsePodPID,
