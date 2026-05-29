@@ -20,6 +20,9 @@ concurrency:
 
 jobs:
   publish-swagger:
+    # TODO we need to setup the permissions and likely use our new oracle bucket instead
+    # For now lets just skip this part
+    if: false
     name: Build and publish swagger.yaml
     runs-on: cncf-ubuntu-8-32-x86
     steps:
