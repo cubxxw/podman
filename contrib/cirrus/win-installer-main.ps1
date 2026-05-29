@@ -17,8 +17,8 @@ $ENV:PODMAN_ARCH = Get-Current-Architecture # on Cirrus CI this should always be
 
 # To get the a GitHub release ID run the following command:
 #  curl -s -H "Accept: application/vnd.github+json" \
-#    https://api.github.com/repos/containers/podman/releases/tags/v5.6.2 | jq '.id'
-$ENV:LATEST_GH_RELEASE_ID = "251232431" # v5.6.2
+#    https://api.github.com/repos/containers/podman/releases/tags/v5.8.2 | jq '.id'
+$ENV:LATEST_GH_RELEASE_ID = "308971529" # v5.8.2
 $NEXT_WIN_INST_VER="9.9.10"
 
 # Download the previous installer to test a major update
