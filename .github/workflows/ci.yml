@@ -631,7 +631,7 @@ jobs:
       PROVIDER: ${{ matrix.provider }}
       CONTAINERS_MACHINE_PROVIDER: ${{ matrix.provider }}
       # machine_test.go rejects TMPDIR >= 22 chars on darwin (socket path budget).
-      TMPDIR: /private/tmp
+      TMPDIR: /private/tmp/ci
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
