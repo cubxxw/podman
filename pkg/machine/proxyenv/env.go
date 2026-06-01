@@ -26,8 +26,9 @@ rm -f $SYSTEMD_SYSTEM_CONF $SYSTEMD_USER_CONF $ENVD_CONF $PROFILE_CONF
 echo "[Manager]" >> $SYSTEMD_SYSTEM_CONF
 echo "[Manager]" >> $SYSTEMD_USER_CONF
 for proxy in %s; do
-	printf "DefaultEnvironment=\"%%s\"\n" "$proxy"  >> $SYSTEMD_SYSTEM_CONF
-	printf "DefaultEnvironment=\"%%s\"\n" "$proxy"  >> $SYSTEMD_USER_CONF
+	systemd_proxy="${proxy//%%/%%%%}"
+	printf "DefaultEnvironment=\"%%s\"\n" "$systemd_proxy"  >> $SYSTEMD_SYSTEM_CONF
+	printf "DefaultEnvironment=\"%%s\"\n" "$systemd_proxy"  >> $SYSTEMD_USER_CONF
 	printf "%%s\n" "$proxy"  >> $ENVD_CONF
 	printf "export %%s\n" "$proxy" >> $PROFILE_CONF
 done
