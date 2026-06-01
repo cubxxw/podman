@@ -45,6 +45,8 @@ jobs:
 
   validate-source:
     name: Validate source code changes
+    # TODO: currently only works on a PR checkout, enable parts of this later to also work on pushes.
+    if: ${{ github.event_name == 'pull_request' }}
     runs-on: cncf-ubuntu-8-32-x86
     env:
       # Base commit of this PR; used by the Makefile and the helper scripts to
