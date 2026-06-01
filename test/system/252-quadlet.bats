@@ -1322,7 +1322,7 @@ spec:
 EOF
 
     # Bind the port to force a an error when starting the pod
-    timeout --foreground -v --kill=10 10 socat TCP-LISTEN:$port,bind=127.0.0.1,fork - &
+    timeout --foreground -v --kill=10 20 socat TCP-LISTEN:$port,bind=127.0.0.1,fork - &
     socat_pid=$!
 
     # Create the Quadlet file
@@ -1341,14 +1341,14 @@ EOF
     echo $output
     assert $status -eq 1 "systemctl start should report failure"
 
+    kill "$socat_pid"
+
     run -0 systemctl show --property=ActiveState $QUADLET_SERVICE_NAME
     assert "$output" == "ActiveState=failed" "unit must be in failed state"
 
     echo "$_LOG_PROMPT journalctl -u $QUADLET_SERVICE_NAME"
     run -0 journalctl -eu $QUADLET_SERVICE_NAME
     assert "$output" =~ "$port.*ddress already in use" "journal contains the real podman start error"
-
-    kill "$socat_pid"
 }
 
 # https://github.com/containers/podman/issues/25786
