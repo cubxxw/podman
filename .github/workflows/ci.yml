@@ -672,6 +672,7 @@ jobs:
     name: "Total Success"
     if: always()
     needs:
+      - path-filter
       - validate-source
       - build
       - build-alt
