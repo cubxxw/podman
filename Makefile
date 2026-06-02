@@ -276,6 +276,10 @@ help: ## (Default) Print listing of key targets with their descriptions
 	@echo "Validating vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
 	hack/commit-subject-check.sh $(EPOCH_TEST_COMMIT)..$(HEAD)
 
+.PHONY: .check-ci-yaml
+.check-ci-yaml:
+	hack/ci/ci_yaml_test.py
+
 .PHONY: lint
 lint: golangci-lint
 ifeq ($(PRE_COMMIT),)
@@ -319,7 +323,7 @@ codespell:
 
 # Code validation target that **DOES NOT** require building podman binaries
 .PHONY: validate-source
-validate-source: lint .commit-subject-check swagger-check tests-expect-exit pr-removes-fixed-skips
+validate-source: lint .commit-subject-check .check-ci-yaml swagger-check tests-expect-exit pr-removes-fixed-skips
 
 # Code validation target that **DOES** require building podman binaries
 .PHONY: validate-binaries
