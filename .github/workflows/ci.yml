@@ -45,23 +45,22 @@ jobs:
 
   validate-source:
     name: Validate source code changes
-    # TODO: currently only works on a PR checkout, enable parts of this later to also work on pushes.
-    if: ${{ github.event_name == 'pull_request' }}
     runs-on: cncf-ubuntu-8-32-x86
     env:
       # Base commit of this PR; used by the Makefile and the helper scripts to
-      # compute the commit range (git merge-base $DEST_BRANCH HEAD..HEAD).
-      DEST_BRANCH: ${{ github.event.pull_request.base.sha }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-      PR_HEAD: ${{ github.event.pull_request.head.sha }}
-      PR_BODY: ${{ github.event.pull_request.body }}
+      # compute the commit range (git merge-base $DEST_BRANCH HEAD).
+      DEST_BRANCH: ${{ github.event.pull_request.base.sha || github.ref_name }}
+      PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+      PR_HEAD: ${{ github.event.pull_request.head.sha || '' }}
+      PR_BODY: ${{ github.event.pull_request.body || '' }}
     steps:
       - name: Checkout PR head
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           # Check out the actual PR head (not the synthetic merge commit) so
           # the commit-range checks validate the contributor's commits.
-          ref: refs/pull/${{ github.event.pull_request.number }}/head
+          # Unless on branch push then checkout the normal ref that triggered the job
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
           # Full history (all branches) is required for git merge-base to find
           # the fork point against the base branch.
           fetch-depth: 0
@@ -128,7 +127,7 @@ jobs:
 
       - name: Check that the PR includes tests
         # The 'No New Tests' label lets maintainers override this check.
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'No New Tests') }}
+        if: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'No New Tests') }}
         run: make tests-included
 
       - name: Validate renovate config
