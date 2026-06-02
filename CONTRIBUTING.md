@@ -10,7 +10,7 @@ Below summarizes the processes that we follow.
 * [Reporting Issues](#reporting-issues)
 * [Working On Issues](#working-on-issues)
 * [Contributing to Podman](#contributing-to-podman)
-* [Continuous Integration](#continuous-integration) [![Build Status](https://api.cirrus-ci.com/github/containers/podman.svg)](https://cirrus-ci.com/github/containers/podman/main)
+* [Continuous Integration](#continuous-integration) [![Build Status](https://github.com/containers/podman/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/containers/podman/actions/workflows/ci.yml?query=branch%3Amain)
 * [Submitting Pull Requests](#submitting-pull-requests)
 * [Communications](#communications)
 
@@ -350,7 +350,7 @@ For example, a documentation-only PR with no code changes will run a substantial
 To force a PR to run all tests, you can include the string `[CI:ALL]` in the PR title, but this is almost never necessary.
 
 There is always additional complexity added by automation, and so it sometimes can fail for any number of reasons.
-This includes post-merge testing on all branches, which you may occasionally see [red bars on the status graph](https://cirrus-ci.com/github/containers/podman/main).
+This includes post-merge testing on all branches, which you may occasionally see [failed runs on the workflow history](https://github.com/containers/podman/actions/workflows/ci.yml?query=branch%3Amain+is%3Afailure).
 
 Most notably, the tests will occasionally flake.
 If you see a single test on your PR has failed, and you do not believe it is caused by your changes, you can rerun the tests.
