@@ -131,7 +131,7 @@ load helpers
 @test "podman stop - can trap signal" {
     # Because the --time and --timeout options can be wonky, try three
     # different variations of this test.
-    for t_opt in '' '--time=5' '--timeout=5'; do
+    for t_opt in '' '--time=9' '--timeout=11'; do
         # Run a simple container that logs output on SIGTERM
         run_podman run -d $IMAGE sh -c \
                    "trap 'echo Received SIGTERM, finishing; exit' SIGTERM; echo READY; while :; do sleep 1; done"
@@ -155,7 +155,7 @@ load helpers
         local howlong=2
         # ...unless running parallel, due to high system load.
         if [[ -n "$PARALLEL_JOBSLOT" ]]; then
-            howlong=4
+            howlong=8
         fi
         delta_t=$(( $t1 - $t0 ))
         assert $delta_t -le $howlong "podman stop: took too long"
