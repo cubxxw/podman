@@ -74,7 +74,7 @@ Description: A Contributor supports the project and adds value to it. Contributi
 * Privileges:
     * Invitations to contributor events
     * Eligible to become a Reviewer
-	* For repositories hosted on Github, Contributors receive Read privileges by default. Contributors who are active in answering questions and assisting with bug reports upstream may request Triage privileges from the repository's maintainers.
+	* For repositories hosted on Github, Contributors receive no special privileges by default. Contributors who are active in answering questions and assisting with bug reports upstream may request Triage privileges from the repository's maintainers.
 
 ### Reviewer
 Description: A Reviewer has responsibility for the triage of issues and review of pull requests on the Podman project or a subproject, consisting of one or more of the Git repositories that form the project. They are collectively responsible, with other Reviewers, for reviewing changes to the repository or repositories and indicating whether those changes are ready to merge. They have a track record of contribution and review in the project.
@@ -97,7 +97,8 @@ Reviewers have all the rights and responsibilities of a Contributor, plus:
     * Has rights to approve pull requests in the Podman project or a subproject, marking them as ready for a Maintainer to review and merge
     * Can recommend and review other contributors to become Reviewers
     * Has permissions to change labels on Github to aid in triage
-	* For repositories hosted on Github, Reviewers receive Triage privileges
+	* For repositories hosted on Github, Reviewers receive Triage privileges by being added to the `<repo-name>-reviewers` team.
+      They also will be invited to the `podman-container-tools` Github organization as member.
 
 #### The process of becoming a Reviewer is:
 1. The contributor must be sponsored by a Maintainer. That sponsor will open a PR against the appropriate repository, which adds the nominee to the [MAINTAINERS.md](./MAINTAINERS.md) file as a reviewer.
@@ -126,7 +127,8 @@ A Maintainer must meet the responsibilities and requirements of a Reviewer, plus
     * Represent the project in public as a senior project member
     * Represent the project in interactions with the CNCF
     * Have a voice, but not a vote, in Core Maintainer decision-making meetings
-	* For repositories hosted on Github, Maintainers receive Maintain privileges by default. If they have a legitimate reason to require Admin privileges (e.g. working on project CI systems), a Maintainer can petition a Core Maintainer to be granted these additional privileges in Github.
+	* For repositories hosted on Github, Maintainers receive Maintain privileges by default by being added to the `<repo-name>-maintainers` team and removed from the `<repo-name>-reviewers` teams.
+      If they have a legitimate reason to require Admin privileges (e.g. working on project CI systems), a Maintainer can petition a Core Maintainer to be granted these additional privileges in Github.
 
 #### Process of becoming a maintainer:
 1. A current reviewer must be sponsored by a Maintainer of the repository in question or a Core Maintainer. The Maintainer or Core Maintainer will open a PR against the repository and add the nominee as a Maintainer in the [MAINTAINERS.md](./MAINTAINERS.md) file. The need for a sponsor is removed for Emeritus Maintainers, who may open this pull request themselves.
@@ -151,7 +153,10 @@ Description: As the Podman project is composed of a number of subprojects, most 
     * Represent the project in public as a senior project member
     * Represent the project in interactions with the CNCF
     * Have a vote in Core Maintainer decision-making meetings
-	* For all repositories hosted on Github, Core Maintainers receive Admin privileges.
+	* For all repositories hosted on Github, Core Maintainers receive Admin privileges by being added as `podman-container-tools` Github organization Owner.
+    * For all repositories hosted on Github, Core Maintainers will be added to *all* `<repo-name>-maintainers` teams. Separate from the permissions granted
+      above, this ensures that Core Maintainers receive pings meant for repository maintainers, as part of their responsibility to assist in code review
+      and decision making in all repositories.
 
 #### Process of becoming a Core Maintainer:
 1. A current maintainer must be sponsored by Core Maintainer. The Core Maintainer will open a PR against the main Podman repository and add the nominee as a Core Maintainer in the [MAINTAINERS.md](./MAINTAINERS.md) file.
