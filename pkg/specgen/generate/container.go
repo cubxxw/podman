@@ -331,6 +331,9 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	if len(s.LogConfiguration.Driver) < 1 {
 		s.LogConfiguration.Driver = rtc.Containers.LogDriver
 	}
+	if len(s.LogConfiguration.Path) < 1 {
+		s.LogConfiguration.Path = rtc.Containers.LogPath
+	}
 	if len(rtc.Containers.LogTag) > 0 {
 		if s.LogConfiguration.Options == nil {
 			s.LogConfiguration.Options = make(map[string]string)

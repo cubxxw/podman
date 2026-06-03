@@ -2435,6 +2435,11 @@ log_path = "%s"
 
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
+			// Server inherited CONTAINERS_CONF_OVERRIDE at restart; unset on
+			// the client so this forces the server to use its config and not rely on
+			// the client's. Without this the client would read log_path and
+			// pass it on to the client, masking server-side bugs.
+			os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
 		}
 
 		containerName := "test-conf-log-container"
