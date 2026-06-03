@@ -117,7 +117,7 @@ jobs:
     packages: [podman-fedora]
     notifications:
       failure_comment:
-        message: "Cockpit tests failed for commit {commit_sha}. @martinpitt, @jelly, @mvollmer please check."
+        message: "Cockpit tests failed for commit {commit_sha}. @jelly, @mvollmer please check."
     targets:
       - fedora-latest-stable
       - fedora-development
