@@ -371,6 +371,17 @@ var _ = Describe("Podman inspect", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("bridge"))
 	})
 
+	It("podman inspect networks with --type=all ", func() {
+		name_0, path_0 := generateNetworkConfig(podmanTest)
+		defer removeConf(path_0)
+		name_1, path_1 := generateNetworkConfig(podmanTest)
+		defer removeConf(path_1)
+
+		session := podmanTest.PodmanExitCleanly("inspect", "--type", "all", name_0, name_1, "--format", "{{.Name}}")
+		Expect(session.OutputToString()).To(ContainSubstring(name_0))
+		Expect(session.OutputToString()).To(ContainSubstring(name_1))
+	})
+
 	It("podman inspect a volume", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
 		session.WaitWithDefaultTimeout()
