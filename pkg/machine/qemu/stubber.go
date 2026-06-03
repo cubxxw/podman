@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	"strings"
 	"time"
 
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
@@ -89,7 +88,7 @@ func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
 	return nil
 }
 
-func (q *QEMUStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, _ *ignition.IgnitionBuilder) error {
+func (q *QEMUStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, ignBuilder *ignition.IgnitionBuilder) error {
 	monitor, err := command.NewQMPMonitor(opts.Name, opts.Dirs.RuntimeDir)
 	if err != nil {
 		return err
@@ -110,6 +109,17 @@ func (q *QEMUStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineCo
 
 	mc.QEMUHypervisor = &qemuConfig
 	mc.QEMUHypervisor.QEMUPidPath = qemuPidPath
+
+	virtiofsMounts := make([]machine.VirtIoFs, 0, len(mc.Mounts))
+	for _, mnt := range mc.Mounts {
+		virtiofsMounts = append(virtiofsMounts, machine.MountToVirtIOFs(mnt))
+	}
+	virtIOIgnitionMounts, err := machine.GenerateSystemDFilesForVirtiofsMounts(virtiofsMounts)
+	if err != nil {
+		return err
+	}
+	ignBuilder.WithUnit(virtIOIgnitionMounts...)
+
 	return q.resizeDisk(mc.Resources.DiskSize, mc.ImagePath)
 }
 
@@ -334,48 +344,8 @@ func (q *QEMUStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
 	return nil
 }
 
-// mountVolumesToVM iterates through the machine's volumes and mounts them to the
-// machine
-// TODO this should probably be temporary; mount code should probably be its own package and shared completely
-func (q *QEMUStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) error {
-	for _, mount := range mc.Mounts {
-		if !quiet {
-			fmt.Printf("Mounting volume... %s:%s\n", mount.Source, mount.Target)
-		}
-		// create mountpoint directory if it doesn't exist
-		// because / is immutable, we have to monkey around with permissions
-		// if we dont mount in /home or /mnt
-		var args []string
-		if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
-			args = append(args, "sudo", "chattr", "-i", "/", ";")
-		}
-		args = append(args, "sudo", "mkdir", "-p", strconv.Quote(mount.Target))
-		if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
-			args = append(args, ";", "sudo", "chattr", "+i", "/", ";")
-		}
-		err := machine.LocalhostSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, args)
-		if err != nil {
-			return err
-		}
-
-		mountFlags := fmt.Sprintf("context=\"%s\"", machine.NFSSELinuxContext)
-		if mount.ReadOnly {
-			mountFlags += ",ro"
-		}
-		// NOTE: The mount type q.Type was previously serialized as 9p for older Linux versions,
-		// but we ignore it now because we want the mount type to be dynamic, not static.  Or
-		// in other words we don't want to make people unnecessarily reprovision their machines
-		// to upgrade from 9p to virtiofs.
-		mountOptions := []string{
-			"-t", "virtiofs",
-			mount.Tag, strconv.Quote(mount.Target),
-			"-o", mountFlags,
-		}
-		err = machine.LocalhostSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, append([]string{"sudo", "mount"}, mountOptions...))
-		if err != nil {
-			return err
-		}
-	}
+func (q *QEMUStubber) MountVolumesToVM(_ *vmconfigs.MachineConfig, _ bool) error {
+	// virtiofs: mounts are handled by systemd units baked into ignition at init time
 	return nil
 }
 
