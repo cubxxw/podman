@@ -505,6 +505,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		Tag       string   `schema:"tag"`
 	}{
 		Format: "oci",
+		Pause:  true,
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -513,9 +514,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	sc := runtime.SystemContext()
 	tag := "latest"
-	options := libpod.ContainerCommitOptions{
-		Pause: true,
-	}
+	options := libpod.ContainerCommitOptions{}
 	switch query.Format {
 	case "oci":
 		mimeType = buildah.OCIv1ImageManifest

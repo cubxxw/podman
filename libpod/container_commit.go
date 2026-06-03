@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 
@@ -16,6 +17,7 @@ import (
 	"go.podman.io/image/v5/types"
 	"go.podman.io/podman/v6/libpod/define"
 	"go.podman.io/podman/v6/libpod/events"
+	"go.podman.io/podman/v6/libpod/shutdown"
 )
 
 // ContainerCommitOptions is a struct used to commit a container to an image
@@ -48,11 +50,22 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 		}
 	}
 
-	if c.state.State == define.ContainerStateRunning && options.Pause {
+	if (c.state.State == define.ContainerStateRunning || c.state.State == define.ContainerStateStopping) && options.Pause {
+		// The container lock is held, so no concurrent Commit can
+		// register a handler with the same name.
+		handlerName := fmt.Sprintf("commit-unpause-%s", c.ID())
+		if err := shutdown.Register(handlerName, func(sig os.Signal) error {
+			logrus.Debugf("Received %v, unpausing container %q", sig, c.ID())
+			return c.unpause()
+		}); err != nil && !errors.Is(err, shutdown.ErrHandlerExists) {
+			logrus.Errorf("Registering shutdown handler for container %q: %v", c.ID(), err)
+		}
 		if err := c.pause(); err != nil {
+			_ = shutdown.Unregister(handlerName)
 			return nil, fmt.Errorf("pausing container %q to commit: %w", c.ID(), err)
 		}
 		defer func() {
+			_ = shutdown.Unregister(handlerName)
 			if err := c.unpause(); err != nil {
 				logrus.Errorf("Unpausing container %q: %v", c.ID(), err)
 			}

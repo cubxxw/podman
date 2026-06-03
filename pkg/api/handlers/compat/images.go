@@ -114,7 +114,8 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		Tag       string   `schema:"tag"`
 		// fromSrc   string  # fromSrc is currently unused
 	}{
-		Tag: "latest",
+		Tag:   "latest",
+		Pause: true,
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -122,9 +123,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sc := runtime.SystemContext()
-	options := libpod.ContainerCommitOptions{
-		Pause: true,
-	}
+	options := libpod.ContainerCommitOptions{}
 	options.CommitOptions = buildah.CommitOptions{
 		ReportWriter:          os.Stderr,
 		SystemContext:         sc,
