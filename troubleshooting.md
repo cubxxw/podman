@@ -9,8 +9,7 @@
 
 A large number of issues reported against Podman are often found to already be fixed
 in more current versions of the project.  Before reporting an issue, please verify the
-version you are running with `podman version` and compare it to the latest release
-documented on the top of Podman's [README.md](README.md).
+version you are running with `podman version` and compare it to the latest release on our [GitHub Releases page](https://github.com/podman-container-tools/podman/releases/latest).
 
 If they differ, please update your version of PODMAN to the latest possible
 and retry your command before reporting the issue.
