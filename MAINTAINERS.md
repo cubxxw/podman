@@ -23,10 +23,10 @@ Maintainers and Reviewers for the Skopeo and Buildah projects are found in their
 | Ashley Cui        | [ashley-cui](https://github.com/ashley-cui)              | Maintainer                       | [Red Hat](https://github.com/RedHatOfficial) |
 | Mario Loriedo     | [l0rd](https://github.com/l0rd/)                         | Maintainer                       | [Red Hat](https://github.com/RedHatOfficial) |
 | Lokesh Mandvekar  | [lsm5](https://github.com/lsm5)                          | Maintainer                       | [Red Hat](https://github.com/RedHatOfficial) |
+| Danish Prakash    | [danishprakash](https://github.com/danishprakash)        | Maintainer                       | [SUSE](https://github.com/suse)              |
 | Jan Rodák         | [Honny1](https://github.com/Honny1)                      | Maintainer                       | [Red Hat](https://github.com/RedHatOfficial) |
 | Jake Correnti     | [jakecorrenti](https://github.com/jakecorrenti)          | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Jan Kaluza        | [jankaluza](https://github.com/jankaluza)                | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
-| Danish Prakash    | [danishprakash](https://github.com/danishprakash)        | Reviewer                         | [SUSE](https://github.com/suse)              |
 | Lewis Roy         | [ninja-quokka](https://github.com/ninja-quokka)          | Reviewer                         | Independent                                  |
 | Nicola Sella      | [inknos](https://github.com/inknos)                      | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Luca Stocchi      | [lstocchi](https://github.com/lstocchi)                  | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
