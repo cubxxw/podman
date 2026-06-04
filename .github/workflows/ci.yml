@@ -208,7 +208,8 @@ jobs:
     name: windows installer ${{ matrix.provider }}
     runs-on: windows-2025-vs2026
     timeout-minutes: 20
-    permissions: {}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
