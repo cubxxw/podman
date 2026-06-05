@@ -15,6 +15,7 @@ import (
 	"go.podman.io/image/v5/signature/simplesequoia"
 	. "go.podman.io/podman/v6/test/utils"
 	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 // testSequoiaKeyFingerprint is a fingerprint of a test Sequoia key in testdata.
@@ -372,17 +373,12 @@ var _ = Describe("Podman push", func() {
 
 		lock := GetPortLock("5004")
 		defer lock.Unlock()
-		htpasswd := SystemExec("htpasswd", []string{"-Bbn", "podmantest", "test"})
-		htpasswd.WaitWithDefaultTimeout()
-		Expect(htpasswd).Should(ExitCleanly())
 
 		f, err := os.Create(filepath.Join(authPath, "htpasswd"))
 		Expect(err).ToNot(HaveOccurred())
 		defer f.Close()
 
-		_, err = f.WriteString(htpasswd.OutputToString())
-		Expect(err).ToNot(HaveOccurred())
-		err = f.Sync()
+		_, err = f.WriteString(htpasswdLine)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{
@@ -397,17 +393,17 @@ var _ = Describe("Podman push", func() {
 
 		Expect(WaitContainerReady(podmanTest, "registry", "listening on", 20, 1)).To(BeTrue(), "registry container ready")
 
-		push := podmanTest.Podman([]string{"push", "--tls-verify=true", "--format=v2s2", "--creds=podmantest:test", ALPINE, "localhost:5004/tlstest"})
+		push := podmanTest.Podman([]string{"push", "--tls-verify=true", "--format=v2s2", "--creds=" + registryUser + ":" + registryPassword, ALPINE, "localhost:5004/tlstest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).To(ExitWithError(125, "x509: certificate signed by unknown authority"))
 
-		push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", "--tls-verify=false", ALPINE, "localhost:5004/tlstest"})
+		push = podmanTest.Podman([]string{"push", "--creds=" + registryUser + ":" + registryPassword, "--tls-verify=false", ALPINE, "localhost:5004/tlstest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 		Expect(push.ErrorToString()).To(ContainSubstring("Writing manifest to image destination"))
 
-		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), "/etc/containers/certs.d/localhost:5004/ca.crt"})
-		Expect(setup).Should(ExitCleanly())
+		_, err = fileutils.CopyFile(filepath.Join(certPath, "domain.crt"), "/etc/containers/certs.d/localhost:5004/ca.crt")
+		Expect(err).ToNot(HaveOccurred())
 
 		push = podmanTest.Podman([]string{"push", "--creds=podmantest:wrongpasswd", ALPINE, "localhost:5004/credstest"})
 		push.WaitWithDefaultTimeout()
@@ -415,12 +411,12 @@ var _ = Describe("Podman push", func() {
 
 		if !IsRemote() {
 			// remote does not support --cert-dir
-			push = podmanTest.Podman([]string{"push", "--tls-verify=true", "--creds=podmantest:test", "--cert-dir=fakedir", ALPINE, "localhost:5004/certdirtest"})
+			push = podmanTest.Podman([]string{"push", "--tls-verify=true", "--creds=" + registryUser + ":" + registryPassword, "--cert-dir=fakedir", ALPINE, "localhost:5004/certdirtest"})
 			push.WaitWithDefaultTimeout()
 			Expect(push).To(ExitWithError(125, "x509: certificate signed by unknown authority"))
 		}
 
-		push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", ALPINE, "localhost:5004/defaultflags"})
+		push = podmanTest.Podman([]string{"push", "--creds=" + registryUser + ":" + registryPassword, ALPINE, "localhost:5004/defaultflags"})
 		push.WaitWithDefaultTimeout()
 		Expect(push).Should(Exit(0))
 		Expect(push.ErrorToString()).To(ContainSubstring("Writing manifest to image destination"))
@@ -430,7 +426,7 @@ var _ = Describe("Podman push", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"manifest", "push", "--creds=podmantest:test", "--tls-verify=false", "--all", "localhost:5004/manifesttest"})
+		session = podmanTest.Podman([]string{"manifest", "push", "--creds=" + registryUser + ":" + registryPassword, "--tls-verify=false", "--all", "localhost:5004/manifesttest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Writing manifest list to image destination"))
