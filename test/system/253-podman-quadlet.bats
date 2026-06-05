@@ -18,6 +18,8 @@ function setup() {
 }
 
 function teardown() {
+    # remove any remaining quadlets from tests
+    run_podman quadlet rm --all --recursive -f
     systemctl daemon-reload
     basic_teardown
 }
@@ -180,8 +182,13 @@ Image=$IMAGE
 Environment=FOO1=foo1
 Exec=sh -c "echo STARTED NGINX; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
 EOF
+
+    # Without --application should fail
+    run_podman 125 quadlet install $quadlet_dir
+    assert "$output" =~ "application name cannot be empty when installing from directory" "install from directory without --application must fail with application cannot be empty error message"
+
     # Test quadlet install with directory
-    run_podman quadlet install $quadlet_dir
+    run_podman quadlet install --application=foo $quadlet_dir
 
     # Test quadlet list to verify all containers were installed
     run_podman quadlet list
@@ -205,8 +212,99 @@ EOF
     run_podman quadlet print nginx.container
     assert "$output" =~ "Environment=FOO1=foo1" "print should contain environment for nginx container"
 
+    # Test quadlet rm using one quadlet file name without recursive (should fail)
+    run_podman 125 quadlet rm "foo"
+    assert "$output" =~ "recursive option is not set" "rm application without --recursive must fail"
+
     # Test quadlet rm for all containers
-    run_podman quadlet rm ".$app_name.app"
+    run_podman quadlet rm "foo" --recursive
+
+    # Determine the install directory path based on rootless/root
+    local install_dir=$(get_quadlet_install_dir)
+
+    # Verify the application folder should not exists in $install_dir
+    if [[ -f "$install_dir/foo" ]]; then
+            die "application folder should not exist in install directory $install_dir after removal"
+    fi
+
+
+    # Verify all containers were removed
+    run_podman quadlet list
+    assert "${#lines[@]}" -ge 1 "list should have at least a header line"
+    assert "${lines[0]}" =~ "NAME" "header should include NAME"
+    assert "${lines[0]}" =~ "POD" "header should include POD column"
+    assert "$output" !~ "alpine1.container" "list should not contain removed quadlets"
+}
+
+@test "quadlet verb - install multiple files from directory and remove by file" {
+    # Create a directory for multiple quadlet files
+    local app_name="test-app-$(safe_name)"
+    local quadlet_dir="$PODMAN_TMPDIR/$app_name"
+    mkdir -p $quadlet_dir
+
+    # Create multiple quadlet files with different configurations
+    cat > $quadlet_dir/alpine1.container <<EOF
+[Container]
+Image=$IMAGE
+Exec=sh -c "echo STARTED CONTAINER 1; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
+EOF
+
+    cat > $quadlet_dir/alpine2.container <<EOF
+[Container]
+Image=$IMAGE
+Exec=sh -c "echo STARTED CONTAINER 2; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
+EOF
+
+    cat > $quadlet_dir/nginx.container <<EOF
+[Container]
+Image=$IMAGE
+Environment=FOO1=foo1
+Exec=sh -c "echo STARTED NGINX; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
+EOF
+
+    # Without --application should fail
+    run_podman 125 quadlet install $quadlet_dir
+    assert "$output" =~ "application name cannot be empty when installing from directory" "install from directory without --application must fail with application cannot be empty error message"
+
+    # Test quadlet install with directory
+    run_podman quadlet install --application=foo $quadlet_dir
+
+    # Test quadlet list to verify all containers were installed
+    run_podman quadlet list
+    assert "$output" =~ "alpine1.container" "list should contain alpine1.container"
+    assert "$output" =~ "alpine2.container" "list should contain alpine2.container"
+    assert "$output" =~ "nginx.container" "list should contain nginx.container"
+
+    # Test quadlet list with filter for alpine containers
+    run_podman quadlet list --filter name=alpine*
+    assert "$output" =~ "alpine1.container" "filtered list should contain alpine1.container"
+    assert "$output" =~ "alpine2.container" "filtered list should contain alpine2.container"
+    assert "$output" !~ "nginx.container" "filtered list should not contain nginx.container"
+
+    # Test quadlet print for each container
+    run_podman quadlet print alpine1.container
+    assert "$output" =~ "Image=$IMAGE" "print should show correct image for alpine1"
+
+    run_podman quadlet print alpine2.container
+    assert "$output" =~ "Image=$IMAGE" "print should show correct image for alpine2"
+
+    run_podman quadlet print nginx.container
+    assert "$output" =~ "Environment=FOO1=foo1" "print should contain environment for nginx container"
+
+    # Test quadlet rm using one quadlet file name without recursive (should fail)
+    run_podman 125 quadlet rm "alpine1.container"
+    assert "$output" =~ "recursive option is not set" "rm application without --recursive must fail"
+
+    # Test quadlet rm using one quadlet file name with recursive
+    run_podman quadlet rm "alpine1.container" --recursive
+
+    # Determine the install directory path based on rootless/root
+    local install_dir=$(get_quadlet_install_dir)
+
+    # Verify the application folder should not exists in $install_dir
+    if [[ -f "$install_dir/foo" ]]; then
+            die "application folder should not exist in install directory $install_dir after removal"
+    fi
 
     # Verify all containers were removed
     run_podman quadlet list
@@ -285,10 +383,10 @@ EOF
     local install_dir=$(get_quadlet_install_dir)
 
     # Test quadlet install with the directory containing the quadlet and test file
-    run_podman quadlet install $quadlet_dir $test_file
+    run_podman quadlet install --application=bar $quadlet_dir $test_file
 
     # Verify the content of the installed test.txt file
-    run -0 cat "$install_dir/test.txt"
+    run -0 cat "$install_dir/bar/test.txt"
     assert "$output" == "$mount_content" "installed test.txt should have correct content"
 
     # Test quadlet list to verify the container was installed
@@ -300,7 +398,7 @@ EOF
     assert "$output" == "$(<$quadlet_file)" "print output matches quadlet file"
 
     # Test quadlet rm
-    run_podman quadlet rm mount-test.container
+    run_podman quadlet rm --recursive mount-test.container
 
     # Verify the test.txt file should not exists in $install_dir
     if [[ -f "$install_dir/test.txt" ]]; then
@@ -562,7 +660,7 @@ EOF
     # Test quadlet rm --ignore behavior
     # Try to remove non-existent quadlets without --ignore (should fail)
     run_podman 125 quadlet rm non-existent.container
-    assert "$output" =~ "could not locate quadlet" "should fail to remove non-existent quadlet without --ignore"
+    assert "$output" =~ "some quadlets could not be removed" "should fail to remove non-existent quadlet without --ignore"
 
     # Try to remove non-existent quadlets with --ignore (should succeed)
     run_podman quadlet rm --ignore non-existent1.container non-existent2.container
@@ -599,28 +697,6 @@ EOF
     local install_dir=$(get_quadlet_install_dir)
     run cat "$install_dir/long.container"
     assert "$output" == "$(<$PODMAN_TMPDIR/long.container)" "File was correctly truncated/replaced atomically"
-
-    # --- VERIFICATION 2: CHECK FOR DUPLICATES IN .APP FILE ---
-
-    local app_file="$install_dir/.long.container.app"
-
-    # Check if the file exists
-    if [ ! -f "$app_file" ]; then
-        # If .app is missing, check if .asset was created instead (debugging IsExtSupported)
-        if [ -f "$install_dir/.long.container.asset" ]; then
-             die "Failed: Created .asset file instead of .app file. IsExtSupported check failed?"
-        fi
-        die "Failed: .app file not found at $app_file"
-    fi
-
-    # Check content of the .app file
-    run cat "$app_file"
-    # It should contain exactly one line: "long.container"
-    assert "$output" == "long.container" ".app file should contain the quadlet name"
-
-    # Ensure no duplicates (line count should be 1)
-    run wc -l < "$app_file"
-    assert "$output" -eq 1 "Should only be listed once in tracking files"
 
     # Cleanup: Remove the installed quadlet
     run_podman quadlet rm long.container
