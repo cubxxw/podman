@@ -142,7 +142,7 @@ jobs:
           TITLE="Release Pipeline Validation failed"
           BODY="Release Pipeline Validation workflow failed.
 
-          @containers/podman-maintainers PTAL
+          @podman-container-tools/podman-maintainers PTAL
 
           **Workflow run:** $RUN_URL
 
