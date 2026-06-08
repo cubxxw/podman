@@ -55,8 +55,43 @@ rm -f $SYSTEMD_SYSTEM_CONF $SYSTEMD_USER_CONF $ENVD_CONF $PROFILE_CONF
 echo "[Manager]" >> $SYSTEMD_SYSTEM_CONF
 echo "[Manager]" >> $SYSTEMD_USER_CONF
 for proxy in "http_proxy=proxy1" "https_proxy=sproxy1" "no_proxy=no1,no2"; do
-	printf "DefaultEnvironment=\"%s\"\n" "$proxy"  >> $SYSTEMD_SYSTEM_CONF
-	printf "DefaultEnvironment=\"%s\"\n" "$proxy"  >> $SYSTEMD_USER_CONF
+	systemd_proxy="${proxy//%/%%}"
+	printf "DefaultEnvironment=\"%s\"\n" "$systemd_proxy"  >> $SYSTEMD_SYSTEM_CONF
+	printf "DefaultEnvironment=\"%s\"\n" "$systemd_proxy"  >> $SYSTEMD_USER_CONF
+	printf "%s\n" "$proxy"  >> $ENVD_CONF
+	printf "export %s\n" "$proxy" >> $PROFILE_CONF
+done
+
+systemctl daemon-reload
+`,
+		},
+		{
+			name: "percent sign in proxy value is escaped for systemd",
+			args: args{
+				isWSL: false,
+				envs: []env{
+					{
+						name:  "http_proxy",
+						value: "http://user%40example.com@proxy:3128",
+					},
+				},
+			},
+			want: `#!/bin/bash
+
+SYSTEMD_SYSTEM_CONF=/etc/systemd/system.conf.d/default-env.conf
+SYSTEMD_USER_CONF=/etc/systemd/user.conf.d/default-env.conf
+ENVD_CONF=/etc/environment.d/default-env.conf
+PROFILE_CONF=/etc/profile.d/default-env.sh
+
+mkdir -p /etc/profile.d /etc/environment.d /etc/systemd/system.conf.d/ /etc/systemd/user.conf.d/
+rm -f $SYSTEMD_SYSTEM_CONF $SYSTEMD_USER_CONF $ENVD_CONF $PROFILE_CONF
+
+echo "[Manager]" >> $SYSTEMD_SYSTEM_CONF
+echo "[Manager]" >> $SYSTEMD_USER_CONF
+for proxy in "http_proxy=http://user%40example.com@proxy:3128"; do
+	systemd_proxy="${proxy//%/%%}"
+	printf "DefaultEnvironment=\"%s\"\n" "$systemd_proxy"  >> $SYSTEMD_SYSTEM_CONF
+	printf "DefaultEnvironment=\"%s\"\n" "$systemd_proxy"  >> $SYSTEMD_USER_CONF
 	printf "%s\n" "$proxy"  >> $ENVD_CONF
 	printf "export %s\n" "$proxy" >> $PROFILE_CONF
 done
