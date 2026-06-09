@@ -228,7 +228,7 @@ func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]any,
 			data = append(data, volumeData[0])
 			continue
 		}
-		networkData, errs, err := registry.ContainerEngine().NetworkInspect(ctx, namesOrIDs, i.options)
+		networkData, errs, err := registry.ContainerEngine().NetworkInspect(ctx, []string{name}, i.options)
 		if err != nil {
 			return nil, nil, err
 		}
