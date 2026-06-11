@@ -1185,7 +1185,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 				// If name is absolute path, then it has to be containerfile outside of build context.
 				// If not, we should check it for being excluded via pattern matcher.
 				if !filepath.IsAbs(name) {
-					excluded, err := pm.Matches(name) //nolint:staticcheck
+					excluded, err := pm.Matches(name)
 					if err != nil {
 						return fmt.Errorf("checking if %q is excluded: %w", name, err)
 					}

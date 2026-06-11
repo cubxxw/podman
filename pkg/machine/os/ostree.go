@@ -236,7 +236,7 @@ func parseApplyInput(arg string) (string, string, error) {
 		}
 
 		imagePath := imgRef.StringWithinTransport()
-		if transportName == ociTransport { //nolint:staticcheck
+		if transportName == ociTransport {
 			// oci:/tmp/oci-image
 			imagePath, _, _ = strings.Cut(imagePath, ":")
 		} else if transportName == ociArchiveTransport {
