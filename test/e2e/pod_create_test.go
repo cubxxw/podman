@@ -20,7 +20,6 @@ import (
 	"go.podman.io/common/pkg/sysinfo"
 	"go.podman.io/podman/v6/pkg/util"
 	. "go.podman.io/podman/v6/test/utils"
-	"go.podman.io/storage/pkg/stringid"
 )
 
 var _ = Describe("Podman pod create", func() {
@@ -176,12 +175,8 @@ var _ = Describe("Podman pod create", func() {
 
 	Describe("podman create pod with --hosts-file", func() {
 		BeforeEach(func() {
-			buildDir := filepath.Join(podmanTest.TempDir, "build"+stringid.GenerateRandomID())
-			err := os.Mkdir(buildDir, 0o755)
-			Expect(err).ToNot(HaveOccurred())
-
-			imageHosts := filepath.Join(buildDir, "pause_hosts")
-			err = os.WriteFile(imageHosts, []byte("56.78.12.34 image.example.com"), 0o755)
+			imageHosts := filepath.Join(podmanTest.TempDir, "pause_hosts")
+			err := os.WriteFile(imageHosts, []byte("56.78.12.34 image.example.com"), 0o755)
 			Expect(err).ToNot(HaveOccurred())
 
 			configHosts := filepath.Join(podmanTest.TempDir, "hosts")
@@ -196,16 +191,11 @@ var _ = Describe("Podman pod create", func() {
 				podmanTest.RestartRemoteService()
 			}
 
-			containerfile := strings.Join([]string{
+			dockerfile := strings.Join([]string{
 				`FROM ` + INFRA_IMAGE,
 				`COPY pause_hosts /etc/hosts`,
 			}, "\n")
-
-			containerFilePath := filepath.Join(buildDir, "Containerfile")
-			err = os.WriteFile(containerFilePath, []byte(containerfile), 0o644)
-			Expect(err).ToNot(HaveOccurred())
-
-			podmanTest.PodmanExitCleanly("build", "-q", "-t", "foobar.com/hosts_test_pause:latest", "--layers=false", "--no-hosts", buildDir)
+			podmanTest.BuildImage(dockerfile, "foobar.com/hosts_test_pause:latest", "false", "--no-hosts")
 		})
 
 		It("--hosts-file=path", func() {

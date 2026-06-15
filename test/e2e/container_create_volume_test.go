@@ -10,17 +10,12 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "go.podman.io/podman/v6/test/utils"
-	"go.podman.io/storage/pkg/stringid"
 )
 
 func buildDataVolumeImage(pTest *PodmanTestIntegration, image, data, dest string) {
-	buildDir := filepath.Join(pTest.TempDir, "build"+stringid.GenerateRandomID())
-	err := os.Mkdir(buildDir, 0o755)
-	Expect(err).ToNot(HaveOccurred())
-
 	// Create a dummy file for data volume
-	dummyFile := filepath.Join(buildDir, data)
-	err = os.WriteFile(dummyFile, []byte(data), 0o644)
+	dummyFile := filepath.Join(pTest.TempDir, data)
+	err := os.WriteFile(dummyFile, []byte(data), 0o644)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Create a data volume container image but no CMD binary in it
@@ -28,11 +23,7 @@ func buildDataVolumeImage(pTest *PodmanTestIntegration, image, data, dest string
 CMD doesnotexist.sh
 ADD %s %s/
 VOLUME %s/`, data, dest, dest)
-
-	containerFilePath := filepath.Join(buildDir, "Containerfile")
-	err = os.WriteFile(containerFilePath, []byte(containerFile), 0o644)
-	Expect(err).ToNot(HaveOccurred())
-	pTest.PodmanExitCleanly("build", "--pull-never", "-q", "-t", image, "--layers=false", "--file", containerFilePath)
+	pTest.BuildImage(containerFile, image, "false")
 }
 
 func createContainersConfFile(pTest *PodmanTestIntegration) {
