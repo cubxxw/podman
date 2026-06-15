@@ -69,7 +69,7 @@ type PodmanTestIntegration struct {
 	SignaturePolicyPath string
 	CgroupManager       string
 	Host                HostOS
-	TmpDir              string
+	CliTmpDir           string // value of podman --tmpdir
 }
 
 var (
@@ -363,11 +363,15 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 		}
 	}
 
+	perTestTempDir := filepath.Join(tempDir, "ptemp")
+	err := os.Mkdir(perTestTempDir, 0o755)
+	Expect(err).ToNot(HaveOccurred())
+
 	p := &PodmanTestIntegration{
 		PodmanTest: PodmanTest{
 			PodmanBinary:       podmanBinary,
 			RemotePodmanBinary: podmanRemoteBinary,
-			TempDir:            tempDir,
+			TempDir:            perTestTempDir,
 			RemoteTest:         target != PodmanTestCreateUtilTargetLocal,
 			ImageCacheFS:       storageFs,
 			ImageCacheDir:      ImageCacheDir,
@@ -376,7 +380,7 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 		ConmonBinary:        conmonBinary,
 		QuadletBinary:       quadletBinary,
 		Root:                root,
-		TmpDir:              tempDir,
+		CliTmpDir:           filepath.Join(tempDir, "clitmp"),
 		NetworkConfigDir:    networkConfigDir,
 		OCIRuntime:          ociRuntime,
 		RunRoot:             filepath.Join(tempDir, "runroot"),
@@ -1417,7 +1421,7 @@ func (p *PodmanTestIntegration) makeOptions(args []string, options PodmanExecOpt
 		"--conmon", p.ConmonBinary,
 		"--network-config-dir", p.NetworkConfigDir,
 		"--cgroup-manager", p.CgroupManager,
-		"--tmpdir", p.TmpDir,
+		"--tmpdir", p.CliTmpDir,
 		"--events-backend", eventsType,
 	)
 

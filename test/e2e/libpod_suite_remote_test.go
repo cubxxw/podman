@@ -133,7 +133,7 @@ func getRemoteOptions(p *PodmanTestIntegration, args []string) []string {
 		"--conmon", p.ConmonBinary,
 		"--network-config-dir", networkDir,
 		"--cgroup-manager", p.CgroupManager,
-		"--tmpdir", p.TmpDir,
+		"--tmpdir", p.CliTmpDir,
 		"--events-backend", "file",
 	}
 
