@@ -1,4 +1,47 @@
 ![PODMAN logo](https://raw.githubusercontent.com/containers/common/main/logos/podman-logo-full-vert.png)
+
+> **WARNING: System tests are destructive to your local environment.**
+> System tests (`make localsystem`/`make remotesystem`/`hack/bats`) wipe `~/.local/share/containers` and `~/.config/containers` before running, removing all local containers, images, pods, volumes, and machine instances. Run them in a dedicated environment or VM, not on a workstation with data you care about.
+
+# Quick Reference
+
+| Command | What it does |
+|---------|-------------|
+| `make localunit` | Unit tests with coverage |
+| `make localintegration` | [Integration tests (`test/e2e/`)](#integration-tests) |
+| `make remoteintegration` | [Integration tests, remote client (`test/e2e/`)](#integration-tests) |
+| `make localmachine` | Machine tests (`pkg/machine/e2e/`) |
+| `make localsystem` | [System tests (`test/system/`)](#system-tests) |
+| `make remotesystem` | [System tests, remote client (`test/system/`)](#system-tests) |
+| `make test` | Run everything (prefer specific targets, see below) |
+
+## Running specific tests
+
+```bash
+# Integration: tests from a specific file
+make localintegration FOCUS_FILE=run_test.go
+
+# Integration: tests matching a description (regex)
+make localintegration FOCUS="podman run exit"
+
+# Integration: combine file + description, no parallelism
+make localintegration FOCUS_FILE=run_test.go FOCUS="podman run exit" GINKGO_PARALLEL=n
+
+# Machine: specific file or description
+make localmachine FOCUS_FILE=basic_test.go
+make localmachine FOCUS="podman machine init"
+
+# System: using hack/bats for fine-grained control
+hack/bats 500                      # file matching "500" (networking)
+hack/bats 220:"restart cleans up"  # specific test in a file
+hack/bats --root 160:"ps -f"      # root-only, filtered
+hack/bats --remote 500             # test with podman-remote
+
+# Unit: specific package or function
+go test -v ./libpod/
+go test -v -run TestMyFunction ./pkg/specgen/
+```
+
 # Test utils
 Test utils provide common functions and structs for testing. It includes two structs:
 * `PodmanTest`: Handle the *podman* command and other global resources like temporary
