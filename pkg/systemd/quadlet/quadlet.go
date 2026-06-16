@@ -119,6 +119,7 @@ const (
 	KeyIgnoreFile            = "IgnoreFile"
 	KeyImage                 = "Image"
 	KeyImageTag              = "ImageTag"
+	KeyImageVolume           = "ImageVolume"
 	KeyInterfaceName         = "InterfaceName"
 	KeyInternal              = "Internal"
 	KeyIP                    = "IP"
@@ -289,6 +290,7 @@ var (
 				KeyIP6:                   true,
 				KeyIP:                    true,
 				KeyImage:                 true,
+				KeyImageVolume:           true,
 				KeyLabel:                 true,
 				KeyLogDriver:             true,
 				KeyLogOpt:                true,
@@ -700,6 +702,7 @@ func ConvertContainer(container *parser.UnitFile, unitsInfoMap map[string]*UnitI
 		KeyMemory:      "--memory",
 		KeyRetry:       "--retry",
 		KeyRetryDelay:  "--retry-delay",
+		KeyImageVolume: "--image-volume",
 	}
 	lookupAndAddString(container, ContainerGroup, stringKeys, podman)
 
