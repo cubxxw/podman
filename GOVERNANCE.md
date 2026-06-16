@@ -23,9 +23,12 @@ This document defines the governance of the Podman Project, including its subpro
 
 # Subprojects
 
-The Podman project currently consists of the Podman project (the repository containing this file) and two subprojects:
-* [Buildah](https://github.com/containers/buildah)
-* [Skopeo](https://github.com/containers/skopeo/)
+The Podman project currently consists of the Podman project (the repository containing this file) and several subprojects:
+* [Buildah](https://github.com/podman-container-tools/buildah)
+* [Skopeo](https://github.com/podman-container-tools/skopeo/)
+* [container-libs](https://github.com/podman-container-tools/container-libs)
+* [podman-machine-os](https://github.com/podman-container-tools/podman-machine-os)
+* [automation](https://github.com/podman-container-tools/automation)
 
 ## Adding Subprojects
 
