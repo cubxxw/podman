@@ -144,7 +144,7 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
 
     # Stop server. Use 'run' to avoid failing on nonzero exit status
     run kill $_SERVICE_PID
-    run wait $_SERVICE_PID
+    wait $_SERVICE_PID || true
     _SERVICE_PID=
 
     run_podman system connection rm fakeconnect
@@ -205,7 +205,7 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
 
     # Stop server. Use 'run' to avoid failing on nonzero exit status
     run kill $_SERVICE_PID
-    run wait $_SERVICE_PID
+    wait $_SERVICE_PID || true
     _SERVICE_PID=
 
     run_podman system connection rm fakeconnect
@@ -270,7 +270,7 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
 
     # Stop server. Use 'run' to avoid failing on nonzero exit status
     run kill $_SERVICE_PID
-    run wait $_SERVICE_PID
+    wait $_SERVICE_PID || true
     _SERVICE_PID=
 
     run_podman system connection rm fakeconnect
