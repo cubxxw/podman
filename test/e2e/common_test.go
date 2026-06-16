@@ -69,7 +69,7 @@ type PodmanTestIntegration struct {
 	SignaturePolicyPath string
 	CgroupManager       string
 	Host                HostOS
-	TmpDir              string
+	CliTmpDir           string // value of podman --tmpdir
 }
 
 var (
@@ -363,11 +363,15 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 		}
 	}
 
+	perTestTempDir := filepath.Join(tempDir, "ptemp")
+	err := os.Mkdir(perTestTempDir, 0o755)
+	Expect(err).ToNot(HaveOccurred())
+
 	p := &PodmanTestIntegration{
 		PodmanTest: PodmanTest{
 			PodmanBinary:       podmanBinary,
 			RemotePodmanBinary: podmanRemoteBinary,
-			TempDir:            tempDir,
+			TempDir:            perTestTempDir,
 			RemoteTest:         target != PodmanTestCreateUtilTargetLocal,
 			ImageCacheFS:       storageFs,
 			ImageCacheDir:      ImageCacheDir,
@@ -376,7 +380,7 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 		ConmonBinary:        conmonBinary,
 		QuadletBinary:       quadletBinary,
 		Root:                root,
-		TmpDir:              tempDir,
+		CliTmpDir:           filepath.Join(tempDir, "clitmp"),
 		NetworkConfigDir:    networkConfigDir,
 		OCIRuntime:          ociRuntime,
 		RunRoot:             filepath.Join(tempDir, "runroot"),
@@ -1417,7 +1421,7 @@ func (p *PodmanTestIntegration) makeOptions(args []string, options PodmanExecOpt
 		"--conmon", p.ConmonBinary,
 		"--network-config-dir", p.NetworkConfigDir,
 		"--cgroup-manager", p.CgroupManager,
-		"--tmpdir", p.TmpDir,
+		"--tmpdir", p.CliTmpDir,
 		"--events-backend", eventsType,
 	)
 
@@ -1547,11 +1551,8 @@ func (s *PodmanSessionIntegration) jq(jqCommand string) (string, error) {
 }
 
 func (p *PodmanTestIntegration) buildImage(dockerfile, imageName string, layers string, label string, extraOptions []string) string {
-	buildDir := filepath.Join(p.TempDir, "build"+stringid.GenerateRandomID())
-	err := os.Mkdir(buildDir, 0o755)
-	Expect(err).ToNot(HaveOccurred())
-	dockerfilePath := filepath.Join(buildDir, "Dockerfile-"+stringid.GenerateRandomID())
-	err = os.WriteFile(dockerfilePath, []byte(dockerfile), 0o644)
+	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile-"+stringid.GenerateRandomID())
+	err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0o755)
 	Expect(err).ToNot(HaveOccurred())
 	cmd := []string{"build", "--pull-never", "--layers=" + layers, "--file", dockerfilePath}
 	if label != "" {
@@ -1563,7 +1564,7 @@ func (p *PodmanTestIntegration) buildImage(dockerfile, imageName string, layers 
 	if len(extraOptions) > 0 {
 		cmd = append(cmd, extraOptions...)
 	}
-	cmd = append(cmd, buildDir)
+	cmd = append(cmd, p.TempDir)
 	session := p.Podman(cmd)
 	session.Wait(240)
 	Expect(session).Should(Exit(0), fmt.Sprintf("BuildImage session output: %q", session.OutputToString()))
