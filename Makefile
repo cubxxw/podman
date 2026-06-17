@@ -236,37 +236,31 @@ default: all
 all: binaries docs
 
 .PHONY: binaries
+binaries: ## Build all platform-appropriate binaries
 ifeq ($(GOOS),freebsd)
-binaries: podman podman-remote podman-testing ## (FreeBSD) Build podman, podman-remote, and podman-testing binaries
+binaries: podman podman-remote podman-testing
 else ifneq (, $(findstring $(GOOS),darwin windows))
-binaries: podman-remote ## (macOS/Windows) Build podman-remote (client) only binaries
+binaries: podman-remote
 else
-binaries: podman podman-remote podman-testing podmansh rootlessport quadlet ## (Linux) Build podman, podman-remote, podmansh, rootlessport, and quadlet binaries
+binaries: podman podman-remote podman-testing podmansh rootlessport quadlet
 endif
 
 # Extract text following double-# for targets, as their description for
-# the `help` target.  Otherwise these simple-substitutions are resolved
-# at reference-time (due to `=` and not `=:`).
-_HLP_TGTS_RX = '^[[:print:]]+:.*?\#\# .*$$'
-_HLP_TGTS_CMD = $(GREP) -E $(_HLP_TGTS_RX) $(MAKEFILE_LIST)
-_HLP_TGTS_LEN = $(shell $(call err_if_empty,_HLP_TGTS_CMD) | cut -d : -f 1 | wc -L 2>/dev/null || echo "PARSING_ERROR")
-# Separated condition for Darwin
-ifeq ($(NATIVE_GOOS)$(_HLP_TGTS_LEN),darwinPARSING_ERROR)
-ifneq (,$(wildcard /usr/local/bin/gwc))
-_HLP_TGTS_LEN = $(shell $(call err_if_empty,_HLP_TGTS_CMD) | cut -d : -f 1 | gwc -L)
-else
-$(warning On Darwin (MacOS) installed coreutils is necessary)
-$(warning Use 'brew install coreutils' command to install coreutils on your system)
-endif
-endif
-_HLPFMT = "%-$(call err_if_empty,_HLP_TGTS_LEN)s %s\n"
+# the `help` target.  Uses awk for column alignment; do not use `wc -L`
+# here because it is not available on macOS without coreutils.
 .PHONY: help
-help: ## (Default) Print listing of key targets with their descriptions
-	@printf $(_HLPFMT) "Target:" "Description:"
-	@printf $(_HLPFMT) "--------------" "--------------------"
-	@$(_HLP_TGTS_CMD) | sort | \
+help: ## Print this help message
+	@echo "Usage: make <target>"
+	@echo ""
+	@echo "Main targets:"
+	@$(GREP) -E '^[[:print:]]+:.*?\#\# .*$$' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":(.*)?## "}; \
-			{printf $(_HLPFMT), $$1, $$2}'
+			{targets[NR] = $$1; descs[NR] = $$2; \
+			 if (length($$1) > max) max = length($$1)} \
+			END {fmt = "  %-" max "s  %s\n"; \
+			     for (i = 1; i <= NR; i++) printf fmt, targets[i], descs[i]}'
+	@echo ""
+	@echo "See test/README.md for details on running specific tests."
 
 ###
 ### Linting/Formatting/Code Validation targets
@@ -282,7 +276,7 @@ help: ## (Default) Print listing of key targets with their descriptions
 	hack/ci/ci_yaml_test.py
 
 .PHONY: lint
-lint: golangci-lint
+lint: golangci-lint ## Run all linters (golangci-lint + pre-commit hooks)
 ifeq ($(PRE_COMMIT),)
 	@echo "FATAL: pre-commit was not found, make .install.pre-commit to installing it." >&2
 	@exit 2
@@ -336,13 +330,13 @@ validate-source: lint shfmt .commit-subject-check .check-ci-yaml swagger-check t
 validate-binaries: man-page-check validate.completions
 
 .PHONY: validate
-validate: validate-source validate-binaries
+validate: validate-source validate-binaries ## Run all validation checks (lint, shfmt, man-pages, completions)
 
 # The image used below is generated manually from contrib/validatepr/Containerfile in this podman repo.  The builds are
 # not automated right now.  The hope is that eventually the quay.io/libpod/fedora_podman is multiarch and can replace this
 # image in the future.
 .PHONY: validatepr
-validatepr: ## Go Format and lint, which all code changes must pass
+validatepr: ## Run full PR validation in a container (lint, format, checks)
 	$(PODMANCMD) run --rm --init --tmpfs /tmp \
 		-v $(CURDIR):/go/src/github.com/containers/podman \
 		-v validatepr-gocache:/root/.cache/go-build \
@@ -366,7 +360,7 @@ build-all-new-commits:
 	git rebase $(call err_if_empty,GIT_BASE_BRANCH) -x "$(MAKE)"
 
 .PHONY: vendor
-vendor:
+vendor: ## Tidy, vendor, and verify Go module dependencies
 	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify
@@ -432,11 +426,11 @@ $(SRCBINDIR)/podman-remote-static $(SRCBINDIR)/podman-remote-static-linux_amd64 
 		-o $@ ./cmd/podman
 
 .PHONY: podman
-podman: bin/podman
+podman: bin/podman ## Build the local podman binary
 
 # This will map to the right thing on Linux, Windows, and Mac.
 .PHONY: podman-remote
-podman-remote: $(SRCBINDIR)/podman$(BINSFX)
+podman-remote: $(SRCBINDIR)/podman$(BINSFX) ## Build the remote client binary
 
 $(SRCBINDIR)/quadlet: $(SOURCES) go.mod go.sum
 	$(GOCMD) build \
@@ -535,7 +529,7 @@ cross-binaries:
 		BUILDTAGS="$(BUILDTAGS_CROSS)" clean-binaries binaries
 
 .PHONY: completions
-completions: podman podman-remote
+completions: podman podman-remote ## Generate shell completions (bash, zsh, fish, powershell)
 	# key = shell, value = completion filename
 	declare -A outfiles=([bash]=%s [zsh]=_%s [fish]=%s.fish [powershell]=%s.ps1);\
 	for shell in $${!outfiles[*]}; do \
@@ -671,7 +665,7 @@ run-docker-py-tests:
 	rm -f test/__init__.py
 
 .PHONY: localunit
-localunit: test/goecho/goecho test/version/version
+localunit: test/goecho/goecho test/version/version ## Run unit tests with coverage
 	rm -rf ${COVERAGE_PATH} && mkdir -p ${COVERAGE_PATH}
 	UNIT=1 $(GINKGO) \
 		-r \
@@ -688,7 +682,7 @@ localunit: test/goecho/goecho test/version/version
 	cat ${COVERAGE_PATH}/functions | sed -n 's/\(total:\).*\([0-9][0-9].[0-9]\)/\1 \2/p'
 
 .PHONY: test
-test: localunit localintegration remoteintegration localsystem remotesystem  ## Run unit, integration, and system tests.
+test: localunit localintegration remoteintegration localsystem remotesystem  ## Run all tests (unit, integration, system)
 
 .PHONY: ginkgo-run
 # e2e tests need access to podman-registry
@@ -717,19 +711,19 @@ testbindings: .install.ginkgo
 	$(GINKGO) -v $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --trace --no-color --timeout 30m  -v -r ./pkg/bindings/test
 
 .PHONY: localintegration
-localintegration: test-binaries ginkgo
+localintegration: test-binaries ginkgo ## Run integration tests locally (test/e2e/)
 
 .PHONY: remoteintegration
-remoteintegration: test-binaries ginkgo-remote
+remoteintegration: test-binaries ginkgo-remote ## Run integration tests for remote client (test/e2e/)
 
 .PHONY: localmachine
-localmachine:
+localmachine: ## Run machine tests locally (pkg/machine/e2e/)
 	# gitCommit needed by logformatter, to link to sources
 	@echo /define.gitCommit=$(GIT_COMMIT)
 	$(MAKE) ginkgo-run GINKGO_PARALLEL=n TAGS="$(REMOTETAGS)" GINKGO_FLAKE_ATTEMPTS=0 FOCUS_FILE=$(FOCUS_FILE) GINKGOWHAT=pkg/machine/e2e/.
 
 .PHONY: localsystem
-localsystem:
+localsystem: ## Run system tests locally (test/system/)
 	# Wipe existing config, database, and cache: start with clean slate.
 	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
 	PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats -T --filter-tags '!ci:parallel' test/system/
@@ -737,7 +731,7 @@ localsystem:
 
 
 .PHONY: remotesystem
-remotesystem:
+remotesystem: ## Run system tests for remote client (test/system/)
 	# Wipe existing config, database, and cache: start with clean slate.
 	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
 	PODMAN=$(CURDIR)/bin/podman-remote QUADLET=$(CURDIR)/bin/quadlet \
@@ -824,7 +818,7 @@ podman-release-%.tar.gz: test/version/version
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
 	-rm -rf "$(tmpsubdir)"
 
-podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$GOOS_$GOARCH, and docs. into an installation zip.
+podman-remote-release-%.zip: test/version/version
 	$(eval tmpsubdir := $(shell mktemp -d podman_tmp_XXXX))
 	$(eval releasedir := podman-$(call err_if_empty,RELEASE_NUMBER))
 	$(eval _dstargs := "DESTDIR=$(tmpsubdir)/$(releasedir)" "PREFIX=$(RELEASE_PREFIX)")
@@ -866,7 +860,7 @@ win-gvproxy-%: test/version/version
 	curl --fail -sSL -o bin/windows/win-sshproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GVPROXY_VERSION)/$(SSHPROXY_FILENAME)
 
 .PHONY: rpm
-rpm:  ## Build rpm packages
+rpm:  ## Build RPM packages
 	$(MAKE) -C rpm
 
 ###
@@ -877,13 +871,13 @@ rpm:  ## Build rpm packages
 # installs them to /usr/local/bin/podman which is likely before. Always use
 # a full path to test installed podman or you risk to call another executable.
 .PHONY: rpm-install
-rpm-install: package  ## Install rpm packages
+rpm-install: package  ## Install RPM packages
 	$(call err_if_empty,PKG_MANAGER) -y install rpm/RPMS/*/*.rpm
 	/usr/bin/podman version
 	/usr/bin/podman info  # will catch a broken conmon
 
 .PHONY: install
-install: install.bin install.remote install.man install.systemd  ## Install binaries to system locations
+install: install.bin install.remote install.man install.systemd  ## Install all binaries, man pages, and systemd units
 
 .PHONY: install.remote
 install.remote:
@@ -1008,7 +1002,7 @@ install.systemd:
 endif
 
 .PHONY: install.tools
-install.tools: .install.golangci-lint ## Install needed tools
+install.tools: .install.golangci-lint ## Install development tools (linters, etc.)
 	$(MAKE) -C test/tools
 
 .PHONY: .install.ginkgo
@@ -1040,7 +1034,7 @@ install.tools: .install.golangci-lint ## Install needed tools
 	fi
 
 .PHONY: release-artifacts
-release-artifacts: clean-binaries
+release-artifacts: clean-binaries ## Build all release artifacts (tarballs, zips)
 	mkdir -p release/
 	$(MAKE) podman-remote-release-darwin_arm64.zip
 	mv podman-remote-release-darwin_arm64.zip release/
@@ -1073,12 +1067,12 @@ uninstall:
 	rm -f $(DESTDIR)${USERSYSTEMDDIR}/podman.service
 
 .PHONY: clean-binaries
-clean-binaries: ## Remove platform/architecture specific binary files
+clean-binaries: ## Remove all compiled binaries
 	rm -rf \
 		bin
 
 .PHONY: clean
-clean: clean-binaries ## Clean all make artifacts
+clean: clean-binaries ## Remove all build artifacts (binaries, docs, test outputs)
 	rm -rf \
 		$(wildcard podman-*.msi) \
 		$(wildcard podman-remote*.zip) \
