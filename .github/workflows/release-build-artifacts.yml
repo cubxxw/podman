@@ -49,6 +49,7 @@ jobs:
   build-artifacts:
     name: Build Artifacts
     runs-on: ubuntu-latest
+    if: github.repository == 'podman-container-tools/podman'
     outputs:
       version_display: ${{ steps.set-version.outputs.version_display }}
     steps:
@@ -88,6 +89,7 @@ jobs:
   mac-pkg:
     name: Build MacOS pkginstaller
     runs-on: macos-latest
+    if: github.repository == 'podman-container-tools/podman'
     env:
       APPLICATION_CERTIFICATE: ${{ secrets.MACOS_APPLICATION_CERT }}
       CODESIGN_IDENTITY: ${{ secrets.MACOS_APPLICATION_IDENTITY }}
