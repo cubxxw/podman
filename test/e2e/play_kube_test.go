@@ -4274,6 +4274,28 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`)
 		Expect(inspect.OutputToString()).To(ContainSubstring("Memory: " + expectedMemoryLimit))
 	})
 
+	It("allows setting fractional BinarySI memory limits", func() {
+		SkipIfContainerized("Resource limits require a running systemd")
+		podmanTest.CgroupManager = "systemd"
+
+		pod := getPod(withCtr(getCtr(
+			withMemoryLimit("1.5Gi"),
+			withMemoryRequest("1.5Gi"),
+		)))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(0))
+
+		inspect := podmanTest.PodmanExitCleanly("inspect", getCtrNameInPod(pod), "--format", `
+Memory: {{ .HostConfig.Memory }}
+MemoryReservation: {{ .HostConfig.MemoryReservation }}`)
+		Expect(inspect.OutputToString()).To(ContainSubstring("Memory: 1610612736"))
+		Expect(inspect.OutputToString()).To(ContainSubstring("MemoryReservation: 1610612736"))
+	})
+
 	It("allows setting resource limits with --cpus 1", func() {
 		SkipIfContainerized("Resource limits require a running systemd")
 		SkipIfRootless("CPU limits require root")

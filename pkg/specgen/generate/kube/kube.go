@@ -294,10 +294,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	// but apply to the containers with the prefixed name
 	s.SeccompProfilePath = opts.SeccompPaths.FindForContainer(opts.Container.Name)
 
-	err = setupContainerResources(s, opts.Container)
-	if err != nil {
-		return nil, fmt.Errorf("failed to configure container resources: %w", err)
-	}
+	setupContainerResources(s, opts.Container)
 
 	err = setupContainerDevices(s, opts.Container)
 	if err != nil {
@@ -881,7 +878,7 @@ func makeHealthCheck(inCmd string, interval int32, retries int32, timeout int32,
 	return &hc, nil
 }
 
-func setupContainerResources(s *specgen.SpecGenerator, containerYAML v1.Container) error {
+func setupContainerResources(s *specgen.SpecGenerator, containerYAML v1.Container) {
 	s.ResourceLimits = &spec.LinuxResources{}
 	milliCPU := containerYAML.Resources.Limits.Cpu().MilliValue()
 	if milliCPU > 0 {
@@ -892,15 +889,9 @@ func setupContainerResources(s *specgen.SpecGenerator, containerYAML v1.Containe
 		}
 	}
 
-	limit, err := quantityToInt64(containerYAML.Resources.Limits.Memory())
-	if err != nil {
-		return fmt.Errorf("failed to set memory limit: %w", err)
-	}
+	limit := quantityToInt64(containerYAML.Resources.Limits.Memory())
 
-	memoryRes, err := quantityToInt64(containerYAML.Resources.Requests.Memory())
-	if err != nil {
-		return fmt.Errorf("failed to set memory reservation: %w", err)
-	}
+	memoryRes := quantityToInt64(containerYAML.Resources.Requests.Memory())
 
 	if limit > 0 || memoryRes > 0 {
 		s.ResourceLimits.Memory = &spec.LinuxMemory{}
@@ -913,8 +904,6 @@ func setupContainerResources(s *specgen.SpecGenerator, containerYAML v1.Containe
 	if memoryRes > 0 {
 		s.ResourceLimits.Memory.Reservation = &memoryRes
 	}
-
-	return nil
 }
 
 const PodmanDeviceResourcePrefix = "io.podman/device"
@@ -1036,16 +1025,14 @@ func setupSecurityContext(s *specgen.SpecGenerator, securityContext *v1.Security
 	}
 }
 
-func quantityToInt64(quantity *resource.Quantity) (int64, error) {
+func quantityToInt64(quantity *resource.Quantity) int64 {
 	if i, ok := quantity.AsInt64(); ok {
-		return i, nil
+		return i
 	}
 
-	if i, ok := quantity.AsDec().Unscaled(); ok {
-		return i, nil
-	}
-
-	return 0, fmt.Errorf("quantity cannot be represented as int64: %v", quantity)
+	// Value() properly accounts for the decimal scale, unlike
+	// AsDec().Unscaled() which silently drops it.
+	return quantity.Value()
 }
 
 // read a k8s secret in JSON/YAML format from the secret manager
