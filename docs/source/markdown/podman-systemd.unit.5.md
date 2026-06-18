@@ -385,6 +385,7 @@ Valid options for `[Container]` are listed below:
 | HostName=example.com                 | --hostname example.com                               |
 | HttpProxy=true                       | --http-proxy=true                                    |
 | Image=ubi8                           | Image specification - ubi8                           |
+| ImageVolume=tmpfs                    | --image-volume tmpfs                                 |
 | IP=192.5.0.1                         | --ip 192.5.0.1                                       |
 | IP6=2001:db8::1                      | --ip6 2001:db8::1                                    |
 | Label="XYZ"                          | --label "XYZ"                                        |
@@ -720,6 +721,11 @@ Special Cases:
 
 * If the `name` of the image ends with `.image`, Quadlet will use the image pulled by the corresponding `.image` file, and the generated systemd service contains a dependency on the `$name-image.service` (or the service name set in the .image file). Note that the corresponding `.image` file must exist.
 * If the `name` of the image ends with `.build`, Quadlet will use the image built by the corresponding `.build` file, and the generated systemd service contains a dependency on the `$name-build.service`. Note: the corresponding `.build` file must exist.
+
+### `ImageVolume=`
+
+Tells Podman how to handle the builtin image volumes. Default is **bind**.
+Equivalent to the Podman `--image-volume` option.
 
 ### `IP=`
 

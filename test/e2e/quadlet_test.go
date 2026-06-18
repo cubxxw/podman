@@ -947,6 +947,7 @@ BOGUS=foo
 		Entry("hostname.container", "hostname.container"),
 		Entry("idmapping.container", "idmapping.container"),
 		Entry("image.container", "image.container"),
+		Entry("image-volume.container", "image-volume.container"),
 		Entry("install.container", "install.container"),
 		Entry("ip.container", "ip.container"),
 		Entry("label.container", "label.container"),
