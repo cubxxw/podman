@@ -39,7 +39,7 @@ const (
 	// podmanTopCommand is the reexec key to safely setup the environment for ps to be executed
 	podmanTopCommand = "podman-top"
 
-	// podmanTopExitCode is a special exec code to signal that podman failed to to something in
+	// podmanTopExitCode is a special exec code to signal that podman failed to do something in
 	// reexec command not ps. This is used to give a better error.
 	podmanTopExitCode = 255
 )
