@@ -59,14 +59,16 @@ func TestGetPodPorts(t *testing.T) {
 			HostPort: 5004,
 		}},
 	}
-	r := getPodPorts([]v1.Container{c1, c2}, false)
+	r, err := getPodPorts([]v1.Container{c1, c2}, false)
+	assert.NoError(t, err)
 	assert.Equal(t, 2, len(r))
 	assert.Equal(t, uint16(5001), r[0].ContainerPort)
 	assert.Equal(t, uint16(5002), r[0].HostPort)
 	assert.Equal(t, uint16(5004), r[1].ContainerPort)
 	assert.Equal(t, uint16(5004), r[1].HostPort)
 
-	r = getPodPorts([]v1.Container{c1, c2}, true)
+	r, err = getPodPorts([]v1.Container{c1, c2}, true)
+	assert.NoError(t, err)
 	assert.Equal(t, 3, len(r))
 	assert.Equal(t, uint16(5000), r[0].ContainerPort)
 	assert.Equal(t, uint16(5000), r[0].HostPort)
@@ -74,6 +76,43 @@ func TestGetPodPorts(t *testing.T) {
 	assert.Equal(t, uint16(5002), r[1].HostPort)
 	assert.Equal(t, uint16(5004), r[2].ContainerPort)
 	assert.Equal(t, uint16(5004), r[2].HostPort)
+}
+
+func TestGetPodPortsDuplicateHostPort(t *testing.T) {
+	c1 := v1.Container{
+		Name: "nginx-1",
+		Ports: []v1.ContainerPort{{
+			ContainerPort: 80,
+			HostPort:      8077,
+		}},
+	}
+	c2 := v1.Container{
+		Name: "nginx-2",
+		Ports: []v1.ContainerPort{{
+			ContainerPort: 80,
+			HostPort:      8077,
+		}},
+	}
+
+	// Same hostPort on two containers must produce an error.
+	_, err := getPodPorts([]v1.Container{c1, c2}, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "nginx-1")
+	assert.Contains(t, err.Error(), "nginx-2")
+	assert.Contains(t, err.Error(), "8077")
+
+	// Different hostPorts must succeed.
+	c2.Ports[0].HostPort = 8078
+	r, err := getPodPorts([]v1.Container{c1, c2}, false)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(r))
+
+	// Same hostPort but different protocols must succeed.
+	c2.Ports[0].HostPort = 8077
+	c2.Ports[0].Protocol = "udp"
+	r, err = getPodPorts([]v1.Container{c1, c2}, false)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(r))
 }
 
 func TestGetPortNumber(t *testing.T) {
