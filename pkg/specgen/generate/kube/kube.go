@@ -87,7 +87,10 @@ func ToPodOpt(_ context.Context, podName string, p entities.PodCreateOptions, pu
 		}
 		p.Net.AddHosts = hosts
 	}
-	podPorts := getPodPorts(podYAML.Spec.Containers, publishAllPorts)
+	podPorts, err := getPodPorts(podYAML.Spec.Containers, publishAllPorts)
+	if err != nil {
+		return p, err
+	}
 	p.Net.PublishPorts = podPorts
 
 	if dnsConfig := podYAML.Spec.DNSConfig; dnsConfig != nil {
@@ -1299,9 +1302,20 @@ func getContainerResources(container v1.Container) (v1.ResourceRequirements, err
 }
 
 // getPodPorts converts a slice of kube container descriptions to an
-// array of portmapping
-func getPodPorts(containers []v1.Container, publishAll bool) []types.PortMapping {
+// array of portmapping.
+// It returns an error if two containers in the same pod bind to the
+// same host port (same hostIP + hostPort + protocol combination).
+func getPodPorts(containers []v1.Container, publishAll bool) ([]types.PortMapping, error) {
+	type portKey struct {
+		hostIP   string
+		hostPort int32
+		protocol string
+	}
+
 	var infraPorts []types.PortMapping
+	// Track which container claimed each (hostIP, hostPort, protocol) tuple.
+	usedPorts := make(map[portKey]string)
+
 	for _, container := range containers {
 		for _, p := range container.Ports {
 			if p.HostPort != 0 && p.ContainerPort == 0 {
@@ -1322,9 +1336,18 @@ func getPodPorts(containers []v1.Container, publishAll bool) []types.PortMapping
 			// only hostPort is utilized in podman context, all container ports
 			// are accessible inside the shared network namespace
 			if p.HostPort != 0 {
+				key := portKey{
+					hostIP:   p.HostIP,
+					hostPort: p.HostPort,
+					protocol: strings.ToLower(string(p.Protocol)),
+				}
+				if prev, exists := usedPorts[key]; exists {
+					return nil, fmt.Errorf("containers %q and %q both bind to host port %d/%s", prev, container.Name, p.HostPort, strings.ToLower(string(p.Protocol)))
+				}
+				usedPorts[key] = container.Name
 				infraPorts = append(infraPorts, portBinding)
 			}
 		}
 	}
-	return infraPorts
+	return infraPorts, nil
 }
