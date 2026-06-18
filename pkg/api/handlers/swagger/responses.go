@@ -94,24 +94,7 @@ type imageDeleteResponse struct {
 // swagger:response
 type registrySearchResponse struct {
 	// in:body
-	Body struct {
-		// Index is the image index
-		// example: quay.io
-		Index string
-		// Name is the canonical name of the image
-		// example: docker.io/library/alpine"
-		Name string
-		// Description of the image.
-		Description string
-		// Stars is the number of stars of the image.
-		Stars int
-		// Official indicates if it's an official image.
-		Official string
-		// Automated indicates if the image was created by an automated build.
-		Automated string
-		// Tag is the image tag
-		Tag string
-	}
+	Body []entities.ImageSearchReport
 }
 
 // Inspect Image
