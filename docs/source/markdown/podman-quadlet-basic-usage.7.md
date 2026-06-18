@@ -42,7 +42,7 @@ For rootful use:
 sudo cp hello.container /etc/containers/systemd/
 ```
 
-## Step 3: Reload and enable the service
+## Step 3: Reload and start the service
 
 For rootless use:
 ```bash
@@ -53,8 +53,12 @@ systemctl --user start hello.service
 For rootful use:
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now hello.service
+sudo systemctl start hello.service
 ```
+
+Note quadlet services cannot be enabled as they are a generated systemd unit,
+see [podman-systemd.unit(5)](podman-systemd.unit.5.md#enabling-unit-files) for more information.
+
 
 ## Expected Output:
 
