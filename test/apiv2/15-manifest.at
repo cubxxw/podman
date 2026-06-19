@@ -29,6 +29,40 @@ RUN >file2
 EOF
 )
 
+# Create manifest lists and populate them at creation time via the `images`
+# query parameter. This path was previously untested (#22258). `images` may be
+# repeated to add more than one image.
+t POST "/v4.0.0/libpod/manifests/withimage?images=containers-storage:$id_abc_image" 201 \
+    .Id~[0-9a-f]\\{64\\}
+id_withimage=$(jq -r '.Id' <<<"$output")
+t GET /v4.0.0/libpod/manifests/$id_withimage/json 200 \
+    .manifests[0].digest~sha256:[0-9a-f]\\{64\\} \
+    '.manifests | length'=1
+
+# The same parameter is honored by the < 4.0.0 create endpoint, where the
+# success status is 200 instead of 201.
+t POST "/v3.4.0/libpod/manifests/create?name=withimage3&images=containers-storage:$id_xyz_image" 200 \
+    .Id~[0-9a-f]\\{64\\}
+id_withimage3=$(jq -r '.Id' <<<"$output")
+t GET /v4.0.0/libpod/manifests/$id_withimage3/json 200 \
+    .manifests[0].digest~sha256:[0-9a-f]\\{64\\} \
+    '.manifests | length'=1
+
+# Repeating the `images` parameter adds multiple images to the list in a single
+# create call.
+t POST "/v4.0.0/libpod/manifests/withimages?images=containers-storage:$id_abc_image&images=containers-storage:$id_xyz_image" 201 \
+    .Id~[0-9a-f]\\{64\\}
+id_withimages=$(jq -r '.Id' <<<"$output")
+t GET /v4.0.0/libpod/manifests/$id_withimages/json 200 \
+    .manifests[0].digest~sha256:[0-9a-f]\\{64\\} \
+    '.manifests | length'=2
+
+# `images` is optional: the create calls at the top of this file omit it and
+# still succeed, even though the API used to document it as required (#22258).
+t DELETE /v4.0.0/libpod/manifests/$id_withimage 200
+t DELETE /v4.0.0/libpod/manifests/$id_withimages 200
+t DELETE /v4.0.0/libpod/manifests/$id_withimage3 200
+
 # manifest add --annotation tests
 t POST /v3.4.0/libpod/manifests/$id_abc/add images="[\"containers-storage:$id_abc_image\"]" 200
 t PUT /v4.0.0/libpod/manifests/$id_xyz operation='update' images="[\"containers-storage:$id_xyz_image\"]" annotations="{\"foo\":\"bar\"}" annotation="[\"hoge=fuga\"]" 400 \
