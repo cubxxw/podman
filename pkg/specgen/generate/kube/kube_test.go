@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	v1 "go.podman.io/podman/v6/pkg/k8s.io/api/core/v1"
+	"go.podman.io/podman/v6/pkg/k8s.io/apimachinery/pkg/api/resource"
 	"go.podman.io/podman/v6/pkg/k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -136,4 +137,46 @@ func TestGetPortNumber(t *testing.T) {
 	i, e = getPortNumber(portSpec, []v1.ContainerPort{cp1, cp2})
 	assert.NoError(t, e)
 	assert.Equal(t, i, 6000)
+}
+
+func TestQuantityToInt64(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected int64
+	}{
+		{
+			name:     "integer BinarySI",
+			input:    "1536Mi",
+			expected: 1536 * 1024 * 1024,
+		},
+		{
+			name:     "fractional BinarySI",
+			input:    "1.5Gi",
+			expected: 1536 * 1024 * 1024,
+		},
+		{
+			name:     "larger fractional BinarySI",
+			input:    "2.5Gi",
+			expected: 2560 * 1024 * 1024,
+		},
+		{
+			name:     "fractional DecimalSI",
+			input:    "1.5G",
+			expected: 1500000000,
+		},
+		{
+			name:     "zero",
+			input:    "0",
+			expected: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q := resource.MustParse(tt.input)
+			got := quantityToInt64(&q)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
 }
