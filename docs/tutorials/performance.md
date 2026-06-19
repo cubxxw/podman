@@ -180,9 +180,9 @@ $ podman info -f '{{.Host.RootlessNetworkCmd}}'
 pasta
 ```
 
-### Lazy pulling of container images
+### Partial pulling of container images
 
-Podman supports lazy pulling for the following container image formats:
+Podman supports partial pulling for the following container image formats:
 
 * __zstd:chunked__
 
@@ -190,11 +190,13 @@ Podman supports lazy pulling for the following container image formats:
 
 __zstd:chunked__ has better performance than __eStargz__.
 
+Partial pulling downloads only the layer contents that are missing locally, but the image is still fully pulled before its containers run. Lazy pulling, where the image is mounted before it is fully downloaded, is out of scope for Podman itself and requires an additional snapshotter such as the [stargz-snapshotter](https://github.com/containerd/stargz-snapshotter) configured as an additional layer store.
+
 See the article [_Pull container images faster with partial pulls_](https://www.redhat.com/sysadmin/faster-container-image-pulls) by Giuseppe Scrivano and Dan Walsh.
 
 ### Choosing a host file system
 
-Lazy pulling of container images can run more efficiently when the file system has reflink support. The file systems XFS and BTRFS have reflink support.
+Partial pulling of container images can run more efficiently when the file system has reflink support. The file systems XFS and BTRFS have reflink support.
 
 ### Option --log-driver
 
