@@ -24,7 +24,7 @@ func (c *CleanupCallback) CleanIfErr(err *error) {
 	c.clean()
 }
 
-func (c *CleanupCallback) CleanOnSignal() {
+func (c *CleanupCallback) CleanOnSignal(quiet bool) {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 
@@ -33,9 +33,13 @@ func (c *CleanupCallback) CleanOnSignal() {
 		return
 	}
 
-	fmt.Println("Received a terminate signal")
+	if !quiet {
+		fmt.Println("Received a terminate signal")
+	}
 	c.clean()
-	fmt.Println("Machine command rollback completed")
+	if !quiet {
+		fmt.Println("Machine command rollback completed")
+	}
 	os.Exit(1)
 }
 

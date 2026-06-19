@@ -30,7 +30,7 @@ func (w WSLStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConf
 	// cleanup half-baked files if init fails at any point
 	callbackFuncs := machine.CleanUp()
 	defer callbackFuncs.CleanIfErr(&err)
-	go callbackFuncs.CleanOnSignal()
+	go callbackFuncs.CleanOnSignal(false)
 	mc.WSLHypervisor = new(vmconfigs.WSLConfig)
 
 	_ = setupWslProxyEnv()

@@ -64,7 +64,7 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 	callbackFuncs := machine.CleanUp()
 	defer callbackFuncs.CleanIfErr(&err)
 	callbackFuncs.Add(createErrorLogCallback(&err))
-	go callbackFuncs.CleanOnSignal()
+	go callbackFuncs.CleanOnSignal(false)
 
 	hwConfig := hypervctl.HardwareConfig{
 		CPUs:     uint16(mc.Resources.CPUs),
@@ -220,7 +220,7 @@ func (h HyperVStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, _ bool) err
 	)
 	callbackFuncs := machine.CleanUp()
 	defer callbackFuncs.CleanIfErr(&err)
-	go callbackFuncs.CleanOnSignal()
+	go callbackFuncs.CleanOnSignal(true)
 
 	if len(mc.Mounts) == 0 {
 		return nil
@@ -568,7 +568,7 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 	callbackFuncs := machine.CleanUp()
 	defer callbackFuncs.CleanIfErr(&err)
 	callbackFuncs.Add(createErrorLogCallback(&err))
-	go callbackFuncs.CleanOnSignal()
+	go callbackFuncs.CleanOnSignal(true)
 
 	if mc.IsFirstBoot() {
 		// this is added because if the machine does not start
