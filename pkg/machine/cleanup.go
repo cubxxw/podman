@@ -1,8 +1,10 @@
 package machine
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
+	"slices"
 	"sync"
 	"syscall"
 
@@ -31,28 +33,37 @@ func (c *CleanupCallback) CleanOnSignal() {
 		return
 	}
 
+	fmt.Println("Received a terminate signal")
 	c.clean()
+	fmt.Println("Machine command rollback completed")
 	os.Exit(1)
 }
 
 func (c *CleanupCallback) clean() {
+	// When a term signal is received the cleanup can be invoked
+	// concurrently in 2 goroutines:
+	//
+	//    - signal flow: a termination signal is received and the
+	//                   goroutine where CleanOnSignal() is running is
+	//                   unblocked and starts invoking the callbacks
+	//    - error flow: an error is returned in the main goroutine, after
+	//                  the signal is received, and CleanIfErr() is invoked,
+	//                  but c.Funcs has been set to nil and therefore no
+	//                  callbacks is exec in this goroutine
+	//
+	// When this is the case the second goroutine should be blocked until
+	// the first goroutine comples the cleanup. c.Funcs is also set to nil
+	// so that cleanup doesn't happen twice.
 	c.mu.Lock()
-	// Claim exclusive usage by copy and resetting to nil
 	funcs := c.Funcs
 	c.Funcs = nil
-	c.mu.Unlock()
-
-	// Already claimed or none set
-	if funcs == nil {
-		return
-	}
-
-	// Cleanup functions can now exclusively be run
-	for _, cleanfunc := range funcs {
+	// Cleanup functions invoked in reverse registration order
+	for _, cleanfunc := range slices.Backward(funcs) {
 		if err := cleanfunc(); err != nil {
 			logrus.Error(err)
 		}
 	}
+	c.mu.Unlock()
 }
 
 func CleanUp() CleanupCallback {
