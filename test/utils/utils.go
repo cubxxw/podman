@@ -292,23 +292,6 @@ func (s *PodmanSession) GrepString(term string) (bool, []string) {
 	return matches, greps
 }
 
-// ErrorGrepString takes session stderr output and behaves like grep. it returns a bool
-// if successful and an array of strings on positive matches
-func (s *PodmanSession) ErrorGrepString(term string) (bool, []string) {
-	var (
-		greps   []string
-		matches bool
-	)
-
-	for _, line := range s.ErrorToStringArray() {
-		if strings.Contains(line, term) {
-			matches = true
-			greps = append(greps, line)
-		}
-	}
-	return matches, greps
-}
-
 // LineInOutputStartsWith returns true if a line in a
 // session output starts with the supplied string
 func (s *PodmanSession) LineInOutputStartsWith(term string) bool {
