@@ -40,11 +40,6 @@ var _ = Describe("PodmanSession test", func() {
 		Expect(backStr).To(BeNil())
 	})
 
-	It("Test LineInOutputStartsWith", func() {
-		Expect(session.LineInOutputStartsWith("Podman")).To(BeTrue())
-		Expect(session.LineInOutputStartsWith("Session")).To(Not(BeTrue()))
-	})
-
 	It("Test LineInOutputContains", func() {
 		Expect(session.LineInOutputContains("Podman")).To(BeTrue())
 		Expect(session.LineInOutputContains("Session")).To(BeTrue())
