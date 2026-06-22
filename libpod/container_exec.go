@@ -29,6 +29,12 @@ type ExecConfig struct {
 	Command []string `json:"command"`
 	// Terminal is whether the exec session will allocate a pseudoterminal.
 	Terminal bool `json:"terminal,omitempty"`
+	// ConsoleSize is an optional initial size for the exec session's
+	// pseudoterminal, applied at creation when Terminal is true. This lets a
+	// one-shot exec read the correct window size immediately instead of
+	// relying on an asynchronous resize that may arrive after the process has
+	// already started.
+	ConsoleSize *resize.TerminalSize `json:"consoleSize,omitempty"`
 	// AttachStdin is whether the STDIN stream will be forwarded to the exec
 	// session's first process when attaching. Only available if Terminal is
 	// false.
@@ -1180,6 +1186,7 @@ func prepareForExec(c *Container, session *ExecSession) (*ExecOptions, error) {
 	opts.ExitCommand = session.Config.ExitCommand
 	opts.ExitCommandDelay = session.Config.ExitCommandDelay
 	opts.Privileged = session.Config.Privileged
+	opts.ConsoleSize = session.Config.ConsoleSize
 
 	return opts, nil
 }
