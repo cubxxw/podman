@@ -16,6 +16,8 @@ file using the **output** flag. The **quiet** flag suppresses the output when se
 To export the containers, use the **podman export**.
 Note: `:` is a restricted character and cannot be part of the file name.
 
+**podman save** operates on *images*: the resulting archive (OCI or docker-archive) preserves the image's layers, history and tags, and is restored as the same image with **podman load**. This is different from **podman export**, which flattens a *container's* filesystem into a single-layer tarball with no image history. To capture a container's filesystem instead, see **podman-export(1)**.
+
 ## OPTIONS
 
 @@option dir-compress
