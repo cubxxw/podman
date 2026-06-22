@@ -90,7 +90,6 @@ func (p *PodmanTest) MakeOptions(args []string, options PodmanExecOptions) []str
 // PodmanExecOptions modify behavior of PodmanTest.PodmanExecBaseWithOptions and its callers.
 // Users should typically leave most fields default-initialized, and only set those that are relevant to them.
 type PodmanExecOptions struct {
-	UID, GID         uint32   // default: inherited form the current process
 	CWD              string   // default: inherited form the current process
 	Env              []string // default: inherited form the current process
 	NoEvents         bool
@@ -126,15 +125,9 @@ func (p *PodmanTest) PodmanExecBaseWithOptions(args []string, options PodmanExec
 	} else {
 		GinkgoWriter.Printf("Running: (env: %v) %s %s\n", options.Env, strings.Join(runCmd, " "), strings.Join(podmanOptions, " "))
 	}
-	if options.UID != 0 || options.GID != 0 {
-		pythonCmd := fmt.Sprintf("import os; import sys; uid = %d; gid = %d; cwd = '%s'; os.setgid(gid); os.setuid(uid); os.chdir(cwd) if len(cwd)>0 else True; os.execv(sys.argv[1], sys.argv[1:])", options.GID, options.UID, options.CWD)
-		runCmd = append(runCmd, podmanOptions...)
-		nsEnterOpts := append([]string{"-c", pythonCmd}, runCmd...)
-		command = exec.Command("python", nsEnterOpts...)
-	} else {
-		runCmd = append(runCmd, podmanOptions...)
-		command = exec.Command(runCmd[0], runCmd[1:]...)
-	}
+
+	runCmd = append(runCmd, podmanOptions...)
+	command = exec.Command(runCmd[0], runCmd[1:]...)
 	if options.Env != nil {
 		command.Env = options.Env
 	}

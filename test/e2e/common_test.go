@@ -568,7 +568,6 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 
 	// Set up registries.conf ENV variable
 	p.setDefaultRegistriesConfigEnv()
-	// Rewrite the PodmanAsUser function
 	p.PodmanMakeOptions = p.makeOptions
 	return p
 }
@@ -1254,17 +1253,6 @@ func SkipIfNotActive(unit string, reason string) {
 		return
 	}
 	Skip(fmt.Sprintf("[systemd]: unit %s is not active (%v): %s", unit, err, reason))
-}
-
-// PodmanAsUser is the exec call to podman on the filesystem with the specified uid/gid and environment
-func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, cwd string, env []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanExecBaseWithOptions(args, PodmanExecOptions{
-		UID: uid,
-		GID: gid,
-		CWD: cwd,
-		Env: env,
-	})
-	return &PodmanSessionIntegration{podmanSession}
 }
 
 // RestartRemoteService stop and start API Server, usually to change config
