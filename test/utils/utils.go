@@ -39,7 +39,6 @@ var (
 // the inheritance structs
 type PodmanTestCommon interface {
 	MakeOptions(args []string, options PodmanExecOptions) []string
-	WaitForContainer() bool
 	WaitContainerReady(id string, expStr string, timeout int, step int) bool
 }
 
@@ -148,18 +147,6 @@ func (p *PodmanTest) PodmanExecBaseWithOptions(args []string, options PodmanExec
 	return &PodmanSession{session}
 }
 
-// WaitForContainer waits on a started container
-func (p *PodmanTest) WaitForContainer() bool {
-	for range 10 {
-		if p.NumberOfContainersRunning() > 0 {
-			return true
-		}
-		time.Sleep(1 * time.Second)
-	}
-	GinkgoWriter.Printf("WaitForContainer(): timed out\n")
-	return false
-}
-
 // NumberOfContainersRunning returns an int of how many
 // containers are currently running.
 func (p *PodmanTest) NumberOfContainersRunning() int {
@@ -245,11 +232,6 @@ func (p *PodmanTest) WaitContainerReady(id string, expStr string, timeout int, s
 		})
 		s.WaitWithDefaultTimeout()
 	}
-}
-
-// WaitForContainer is a wrapper function for accept inheritance PodmanTest struct.
-func WaitForContainer(p PodmanTestCommon) bool {
-	return p.WaitForContainer()
 }
 
 // WaitContainerReady is a wrapper function for accept inheritance PodmanTest struct.
