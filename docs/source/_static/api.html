@@ -21,15 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/redoc@v2/bundles/redoc.standalone.js"> </script>
     <div id="redoc-container"></div>
     <script>
-      // get version from query (default to latest)
-      var queryString = window.location.search;
-      var query = new URLSearchParams(queryString);
-      var version = "latest";
-      if (query.has("version")) {
-        version = query.get("version");
-      }
-
-      Redoc.init("https://storage.googleapis.com/libpod-master-releases/swagger-" + version + ".yaml", {
+      Redoc.init("swagger.yaml", {
         sortPropsAlphabetically: true,
         sortOperationsAlphabetically: true,
       }, document.getElementById("redoc-container"));
