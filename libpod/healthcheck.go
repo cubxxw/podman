@@ -59,8 +59,17 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 
 	timeStart := time.Now()
 	if c.HealthCheckConfig().StartPeriod > 0 {
+		// state must be synced from DB
+		c.lock.Lock()
+		if err := c.syncContainer(); err != nil {
+			c.lock.Unlock()
+			return define.HealthCheckInternalError, "", err
+		}
 		// there is a start-period we need to honor; we add startPeriod to container start time
 		startPeriodTime := c.state.StartedTime.Add(c.HealthCheckConfig().StartPeriod)
+		c.lock.Unlock()
+		// Do not stay locked here, in healthCheckExec it will lock again.
+
 		if timeStart.Before(startPeriodTime) {
 			// we are still in the start period, flip the inStartPeriod bool
 			inStartPeriod = true
