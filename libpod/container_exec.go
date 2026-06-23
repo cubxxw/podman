@@ -904,37 +904,18 @@ func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resi
 	return session.ExitCode, nil
 }
 
-// cleanupExecBundle cleans up an exec session after completion.
-// MUST BE CALLED with container `c` locked.
-// Please be careful when using this function since it might temporarily unlock
-// the container when os.RemoveAll($bundlePath) fails with ENOTEMPTY or EBUSY
-// errors.
+// cleanupExecBundle cleans up an exec session bundle path after completion.
 func (c *Container) cleanupExecBundle(sessionID string) (err error) {
 	path := c.execBundlePath(sessionID)
-	for range 50 {
+	for range 100 {
 		err = os.RemoveAll(path)
 		if err == nil || errors.Is(err, os.ErrNotExist) {
 			return nil
 		}
-		if pathErr, ok := err.(*os.PathError); ok {
-			err = pathErr.Err
-			if errors.Is(err, unix.ENOTEMPTY) || errors.Is(err, unix.EBUSY) {
-				// give other processes a chance to use the container
-				if !c.batched {
-					if err := c.save(); err != nil {
-						return err
-					}
-					c.lock.Unlock()
-				}
-				time.Sleep(time.Millisecond * 100)
-				if !c.batched {
-					c.lock.Lock()
-					if err := c.syncContainer(); err != nil {
-						return err
-					}
-				}
-				continue
-			}
+		// retry the removal on ENOTEMPTY/EBUSY after a short sleep
+		if errors.Is(err, unix.ENOTEMPTY) || errors.Is(err, unix.EBUSY) {
+			time.Sleep(time.Millisecond * 50)
+			continue
 		}
 		return err
 	}
