@@ -619,58 +619,6 @@ func (c *Container) ExecHTTPStartAndAttach(sessionID string, r *http.Request, w 
 	return lastErr
 }
 
-// ExecStop stops an exec session in the container.
-// If a timeout is provided, it will be used; otherwise, the timeout will
-// default to the stop timeout of the container.
-// Cleanup will be invoked automatically once the session is stopped.
-func (c *Container) ExecStop(sessionID string, timeout *uint) error {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return err
-		}
-	}
-
-	session, ok := c.state.ExecSessions[sessionID]
-	if !ok {
-		return fmt.Errorf("container %s has no exec session with ID %s: %w", c.ID(), sessionID, define.ErrNoSuchExecSession)
-	}
-
-	if session.State != define.ExecStateRunning {
-		return fmt.Errorf("container %s exec session %s is %q, can only stop running sessions: %w", c.ID(), session.ID(), session.State.String(), define.ErrExecSessionStateInvalid)
-	}
-
-	logrus.Infof("Stopping container %s exec session %s", c.ID(), session.ID())
-
-	finalTimeout := c.StopTimeout()
-	if timeout != nil {
-		finalTimeout = *timeout
-	}
-
-	// Stop the session
-	if err := c.ociRuntime.ExecStopContainer(c, session.ID(), finalTimeout); err != nil {
-		return err
-	}
-
-	var cleanupErr error
-
-	// Retrieve exit code and update status
-	if err := retrieveAndWriteExecExitCode(c, session.ID()); err != nil {
-		cleanupErr = err
-	}
-
-	if err := c.cleanupExecBundle(session.ID()); err != nil {
-		if cleanupErr != nil {
-			logrus.Errorf("Stopping container %s exec session %s: %v", c.ID(), session.ID(), cleanupErr)
-		}
-		cleanupErr = err
-	}
-
-	return cleanupErr
-}
-
 // ExecCleanup cleans up an exec session in the container, removing temporary
 // files associated with it.
 func (c *Container) ExecCleanup(sessionID string) error {
