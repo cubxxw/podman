@@ -159,14 +159,6 @@ func (e *ExecSession) Inspect() (*define.InspectExecSession, error) {
 	return output, nil
 }
 
-// legacyExecSession contains information on an active exec session. It is a
-// holdover from a previous Podman version and is DEPRECATED.
-type legacyExecSession struct {
-	ID      string   `json:"id"`
-	Command []string `json:"command"`
-	PID     int      `json:"pid"`
-}
-
 func (c *Container) verifyExecConfig(config *ExecConfig) error {
 	if config == nil {
 		return fmt.Errorf("must provide a configuration to ExecCreate: %w", define.ErrInvalidArg)
@@ -963,11 +955,6 @@ func (c *Container) getExecSessionPID(sessionID string) (int, string, error) {
 	if ok {
 		return session.PID, session.PIDData, nil
 	}
-	oldSession, ok := c.state.LegacyExecSessions[sessionID]
-	if ok {
-		return oldSession.PID, "", nil
-	}
-
 	return -1, "", fmt.Errorf("no exec session with ID %s found in container %s: %w", sessionID, c.ID(), define.ErrNoSuchExecSession)
 }
 
@@ -977,12 +964,6 @@ func (c *Container) getExecSessionPID(sessionID string) (int, string, error) {
 // function performs further checks to return an accurate list.
 func (c *Container) getKnownExecSessions() []string {
 	knownSessions := []string{}
-	// First check legacy sessions.
-	// TODO: This is DEPRECATED and will be removed in a future major
-	// release.
-	for sessionID := range c.state.LegacyExecSessions {
-		knownSessions = append(knownSessions, sessionID)
-	}
 	// Next check new exec sessions, but only if in running state
 	for sessionID, session := range c.state.ExecSessions {
 		if session.State == define.ExecStateRunning {
@@ -996,7 +977,6 @@ func (c *Container) getKnownExecSessions() []string {
 // getActiveExecSessions checks if there are any active exec sessions in the
 // current container. Returns an array of active exec sessions.
 // Will continue through errors where possible.
-// Currently handles both new and legacy, deprecated exec sessions.
 func (c *Container) getActiveExecSessions() ([]string, error) {
 	activeSessions := []string{}
 	knownSessions := c.getKnownExecSessions()
@@ -1014,28 +994,22 @@ func (c *Container) getActiveExecSessions() ([]string, error) {
 			continue
 		}
 		if !alive {
-			_, isLegacy := c.state.LegacyExecSessions[id]
-			if isLegacy {
-				delete(c.state.LegacyExecSessions, id)
-				needSave = true
-			} else {
-				session := c.state.ExecSessions[id]
-				exitCode, err := c.readExecExitCode(session.ID())
-				if err != nil {
-					if lastErr != nil {
-						logrus.Errorf("Checking container %s exec sessions: %v", c.ID(), lastErr)
-					}
-					lastErr = err
+			session := c.state.ExecSessions[id]
+			exitCode, err := c.readExecExitCode(session.ID())
+			if err != nil {
+				if lastErr != nil {
+					logrus.Errorf("Checking container %s exec sessions: %v", c.ID(), lastErr)
 				}
-				session.ExitCode = exitCode
-				session.PID = 0
-				session.PIDData = ""
-				session.State = define.ExecStateStopped
-
-				c.newExecDiedEvent(session.ID(), exitCode)
-
-				needSave = true
+				lastErr = err
 			}
+			session.ExitCode = exitCode
+			session.PID = 0
+			session.PIDData = ""
+			session.State = define.ExecStateStopped
+
+			c.newExecDiedEvent(session.ID(), exitCode)
+			needSave = true
+
 			if err := c.cleanupExecBundle(id); err != nil {
 				if lastErr != nil {
 					logrus.Errorf("Checking container %s exec sessions: %v", c.ID(), lastErr)
@@ -1091,7 +1065,6 @@ func (c *Container) removeAllExecSessions() error {
 		}
 	}
 	c.state.ExecSessions = nil
-	c.state.LegacyExecSessions = nil
 
 	return lastErr
 }
