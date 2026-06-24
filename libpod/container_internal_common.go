@@ -1238,6 +1238,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	if err != nil {
 		return fmt.Errorf("reading checkpoint directory %q: %w", c.ID(), err)
 	}
+	defer input.Close()
 
 	outFile, err := os.Create(options.TargetFile)
 	if err != nil {
