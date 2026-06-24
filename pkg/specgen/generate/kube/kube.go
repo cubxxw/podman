@@ -42,6 +42,14 @@ import (
 	cdiparser "tags.cncf.io/container-device-interface/pkg/parser"
 )
 
+func restoreKubeAnnotationAliases(annotations map[string]string, containerName string) {
+	for _, alias := range define.OCIRuntimeAnnotationAliases {
+		if value, ok := annotations[alias.Kube+"/"+containerName]; ok {
+			annotations[alias.Runtime] = value
+		}
+	}
+}
+
 func ToPodOpt(_ context.Context, podName string, p entities.PodCreateOptions, publishAllPorts bool, podYAML *v1.PodTemplateSpec) (entities.PodCreateOptions, error) {
 	p.Net = &entities.NetOptions{NoHosts: p.Net.NoHosts, NoHostname: p.Net.NoHostname}
 
@@ -377,6 +385,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		annotations[ann.SandboxID] = opts.PodInfraID
 	}
 	s.Annotations = annotations
+	restoreKubeAnnotationAliases(s.Annotations, opts.Container.Name)
 
 	if containerCIDFile, ok := opts.Annotations[define.InspectAnnotationCIDFile+"/"+opts.Container.Name]; ok {
 		s.Annotations[define.InspectAnnotationCIDFile] = containerCIDFile

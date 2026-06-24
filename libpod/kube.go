@@ -618,7 +618,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				if !podmanOnly && (define.IsReservedAnnotation(k)) {
 					continue
 				}
-				podAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = v
+				podAnnotations[fmt.Sprintf("%s/%s", kubeAnnotationAlias(k), removeUnderscores(ctr.Name()))] = v
 			}
 			// Convert auto-update labels into kube annotations
 			maps.Copy(podAnnotations, getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()))
@@ -764,7 +764,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 			if !podmanOnly && define.IsReservedAnnotation(k) {
 				continue
 			}
-			kubeAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = v
+			kubeAnnotations[fmt.Sprintf("%s/%s", kubeAnnotationAlias(k), removeUnderscores(ctr.Name()))] = v
 		}
 
 		// Convert auto-update labels into kube annotations
@@ -1447,6 +1447,15 @@ func generateKubeVolumeDeviceFromLinuxDevice(devices []specs.LinuxDevice) []v1.V
 		volumeDevices = append(volumeDevices, vd)
 	}
 	return volumeDevices
+}
+
+func kubeAnnotationAlias(annotationKey string) string {
+	for _, alias := range define.OCIRuntimeAnnotationAliases {
+		if alias.Runtime == annotationKey {
+			return alias.Kube
+		}
+	}
+	return annotationKey
 }
 
 func removeUnderscores(s string) string {
