@@ -110,6 +110,24 @@ var _ = Describe("Podman volume prune", func() {
 		podmanTest.PodmanExitCleanly("volume", "prune", "--force", "--filter", "label!=testlabel")
 	})
 
+	It("podman volume prune --all keeps the label filter", func() {
+		// Regression: the "all" flag must not discard a label/label! filter.
+		// With "--all --filter label!=keep" only unlabeled unused volumes are
+		// pruned; the labeled one survives. Before the fix, "all" cleared the
+		// filter and both volumes were removed.
+		podmanTest.PodmanExitCleanly("volume", "create", "--label", "keep=yes", "keepvol")
+		podmanTest.PodmanExitCleanly("volume", "create", "dropvol")
+
+		session := podmanTest.PodmanExitCleanly("volume", "ls", "-q")
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+
+		podmanTest.PodmanExitCleanly("volume", "prune", "--all", "--force", "--filter", "label!=keep")
+
+		session = podmanTest.PodmanExitCleanly("volume", "ls", "-q")
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
+		Expect(session.OutputToString()).To(Equal("keepvol"))
+	})
+
 	It("podman system prune --volume", func() {
 		useCustomNetworkDir(podmanTest, tempdir)
 		podmanTest.PodmanExitCleanly("volume", "create")
