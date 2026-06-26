@@ -279,13 +279,13 @@ echo "$quadlet_7_content" > "$TMPD/$quadlet_7"
 echo "$containerfile_3_content" > "$TMPD/$containerfile_3"
 tar --format=posix -C "$TMPD" -cvf "$TMPD/$quadlet_7$containerfile_3.tar" "$quadlet_7" "$containerfile_3" &> /dev/null
 
-t POST "libpod/quadlets" "$TMPD/$quadlet_7$containerfile_3.tar" 200 \
+t POST "libpod/quadlets?application=baz" "$TMPD/$quadlet_7$containerfile_3.tar" 200 \
     '.InstalledQuadlets|length=2' \
     '.QuadletErrors|length=0'
 
 t GET "libpod/quadlets/$quadlet_7/file" 200
 is "$output" "$quadlet_7_content" "quadlet-7 should be installed"
-is "$(cat "$quadlet_install_dir/$containerfile_3")" "$containerfile_3_content" "containerfile_3 should be installed"
+is "$(cat "$quadlet_install_dir/baz/$containerfile_3")" "$containerfile_3_content" "containerfile_3 should be installed"
 
 # Scenario: test a multipart call, then update without replace, and then replace
 quadlet_6=quadlet-test-6-$(cat /proc/sys/kernel/random/uuid).container
@@ -401,7 +401,7 @@ podman quadlet rm --recursive "$quadlet_1" \
 rm -f "$quadlet_install_dir/bar/$containerfile_1"
 rm -f "$quadlet_install_dir/bar/$configfile_1"
 rm -f "$quadlet_install_dir/$containerfile_2"
-rm -f "$quadlet_install_dir/$containerfile_3"
+rm -f "$quadlet_install_dir/baz/$containerfile_3"
 rm -rf $TMPD
 
 # DELETE endpoint tests
