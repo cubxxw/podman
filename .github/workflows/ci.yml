@@ -613,9 +613,21 @@ jobs:
       - name: WSL info
         if: matrix.provider == 'wsl'
         shell: pwsh
+        env:
+          WSL_UTF8: '1'
         run: |
           wsl --update
           wsl --version
+          wsl --status
+
+      - name: Uninstall WSL
+        if: matrix.provider == 'hyperv'
+        env:
+          WSL_UTF8: '1'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          wsl --uninstall
           wsl --status
 
       - name: Configure container policy
