@@ -1,7 +1,6 @@
 package machine
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -61,6 +60,13 @@ func LocalhostSSHCopy(username, identityPath string, sshPort int, srcPath, destP
 	return cmd.Run()
 }
 
+type sshDebugLogger struct{}
+
+func (w *sshDebugLogger) Write(p []byte) (int, error) {
+	logrus.Debugf("ssh output: %s", string(p))
+	return len(p), nil
+}
+
 func localhostBuiltinSSH(username, identityPath, name string, sshPort int, inputArgs []string, passOutput bool, stdin io.Reader) error {
 	config, err := createLocalhostConfig(username, identityPath) // WARNING: This MUST NOT be generalized to allow communication over untrusted networks.
 	if err != nil {
@@ -86,38 +92,12 @@ func localhostBuiltinSSH(username, identityPath, name string, sshPort int, input
 		session.Stdout = os.Stdout
 		session.Stderr = os.Stderr
 	} else if logrus.IsLevelEnabled(logrus.DebugLevel) {
-		return runSessionWithDebug(session, cmd)
+		logger := &sshDebugLogger{}
+		session.Stdout = logger
+		session.Stderr = logger
 	}
 
 	return session.Run(cmd)
-}
-
-func runSessionWithDebug(session *ssh.Session, cmd string) error {
-	outPipe, err := session.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	errPipe, err := session.StderrPipe()
-	if err != nil {
-		return err
-	}
-	logOuput := func(pipe io.Reader, done chan struct{}) {
-		scanner := bufio.NewScanner(pipe)
-		for scanner.Scan() {
-			logrus.Debugf("ssh output: %s", scanner.Text())
-		}
-		done <- struct{}{}
-	}
-	if err := session.Start(cmd); err != nil {
-		return err
-	}
-	completed := make(chan struct{}, 2)
-	go logOuput(outPipe, completed)
-	go logOuput(errPipe, completed)
-	<-completed
-	<-completed
-
-	return session.Wait()
 }
 
 // createLocalhostConfig returns a *ssh.ClientConfig for authenticating a user using a private key
