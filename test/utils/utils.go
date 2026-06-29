@@ -12,7 +12,6 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -78,7 +77,6 @@ type PodmanSession struct {
 type HostOS struct {
 	Distribution string
 	Version      string
-	Arch         string
 }
 
 // MakeOptions assembles all podman options
@@ -397,14 +395,11 @@ func tagOutputToMap(imagesOutput []string) map[string]map[string]bool {
 // GetHostDistributionInfo returns a struct with its distribution Name and version
 func GetHostDistributionInfo() HostOS {
 	f, err := os.Open(OSReleasePath)
-	if err != nil {
-		return HostOS{}
-	}
+	Expect(err).ToNot(HaveOccurred(), "open %s", OSReleasePath)
 	defer f.Close()
 
 	l := bufio.NewScanner(f)
 	host := HostOS{}
-	host.Arch = runtime.GOARCH
 	for l.Scan() {
 		if strings.HasPrefix(l.Text(), "ID=") {
 			host.Distribution = strings.ReplaceAll(strings.TrimSpace(strings.Join(strings.Split(l.Text(), "=")[1:], "")), "\"", "")
@@ -413,6 +408,8 @@ func GetHostDistributionInfo() HostOS {
 			host.Version = strings.ReplaceAll(strings.TrimSpace(strings.Join(strings.Split(l.Text(), "=")[1:], "")), "\"", "")
 		}
 	}
+	err = l.Err()
+	Expect(err).ToNot(HaveOccurred(), "read %s", OSReleasePath)
 	return host
 }
 

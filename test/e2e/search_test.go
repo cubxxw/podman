@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"runtime"
 	"strconv"
 	"text/template"
 
@@ -44,7 +45,7 @@ insecure = false
 	registryFileBadTmpl := template.Must(template.New("registryFileBad").Parse(badRegFileContents))
 
 	mockFakeRegistryServerAsContainer := func(name string) endpoint {
-		if podmanTest.Host.Arch == "ppc64le" {
+		if runtime.GOARCH == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
 		port := GetPort()

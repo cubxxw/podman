@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -121,7 +122,7 @@ var _ = Describe("Podman save", func() {
 	It("podman save remove signature", func() {
 		podmanTest.AddImageToRWStore(ALPINE)
 		SkipIfRootless("FIXME: Need get in rootless push sign")
-		if podmanTest.Host.Arch == "ppc64le" {
+		if runtime.GOARCH == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
 		tempGNUPGHOME := filepath.Join(podmanTest.TempDir, "tmpGPG")

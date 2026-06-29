@@ -168,7 +168,7 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create with --mount flag", func() {
-		if podmanTest.Host.Arch == "ppc64le" {
+		if runtime.GOARCH == "ppc64le" {
 			Skip("skip failing test on ppc64le")
 		}
 

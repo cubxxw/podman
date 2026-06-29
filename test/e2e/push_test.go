@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -95,7 +96,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("push test --force-compression", func() {
-		if podmanTest.Host.Arch == "ppc64le" {
+		if runtime.GOARCH == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
 		if isRootless() {
@@ -152,7 +153,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("push test --force-compression --format=v2s2", func() {
-		if podmanTest.Host.Arch == "ppc64le" {
+		if runtime.GOARCH == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
 		if isRootless() {
@@ -193,7 +194,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to local registry", func() {
-		if podmanTest.Host.Arch == "ppc64le" {
+		if runtime.GOARCH == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
 		if isRootless() {
@@ -358,7 +359,7 @@ var _ = Describe("Podman push", func() {
 
 	It("podman push to local registry with authorization", func() {
 		SkipIfRootless("/etc/containers/certs.d not writable")
-		if podmanTest.Host.Arch == "ppc64le" {
+		if runtime.GOARCH == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
 		authPath := filepath.Join(podmanTest.TempDir, "auth")

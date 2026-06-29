@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -1049,7 +1050,7 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint container with --pre-checkpoint", func() {
-		if podmanTest.Host.Arch == "arm64" {
+		if runtime.GOARCH == "arm64" {
 			Skip("skip on arm64/aarch64, https://github.com/checkpoint-restore/criu/issues/2676")
 		}
 		SkipIfContainerized("FIXME: #24230 - no longer works in container testing")
@@ -1085,7 +1086,7 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint container with --pre-checkpoint and export (migration)", func() {
-		if podmanTest.Host.Arch == "arm64" {
+		if runtime.GOARCH == "arm64" {
 			Skip("skip on arm64/aarch64, https://github.com/checkpoint-restore/criu/issues/2676")
 		}
 		SkipIfContainerized("FIXME: #24230 - no longer works in container testing")

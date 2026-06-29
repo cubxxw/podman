@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"sort"
 	"strconv"
@@ -68,7 +69,6 @@ type PodmanTestIntegration struct {
 	StorageOptions      string
 	SignaturePolicyPath string
 	CgroupManager       string
-	Host                HostOS
 	CliTmpDir           string // value of podman --tmpdir
 }
 
@@ -296,7 +296,6 @@ const (
 
 // PodmanTestCreateUtil creates a PodmanTestIntegration instance for the tests
 func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *PodmanTestIntegration {
-	host := GetHostDistributionInfo()
 	cwd, _ := os.Getwd()
 
 	root := filepath.Join(tempDir, "root")
@@ -387,7 +386,6 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 		StorageOptions:      storageOptions,
 		SignaturePolicyPath: filepath.Join(INTEGRATION_ROOT, "test/policy.json"),
 		CgroupManager:       cgroupManager,
-		Host:                host,
 	}
 
 	var pathPrefix string
@@ -1828,7 +1826,7 @@ func skipWithoutDevNullb0() {
 }
 
 func SkipIfNotAMD64() {
-	if podmanTest.Host.Arch != "amd64" {
+	if runtime.GOARCH != "amd64" {
 		Skip("test only valid on amd64")
 	}
 }
