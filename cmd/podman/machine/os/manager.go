@@ -5,6 +5,7 @@ package os
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
@@ -52,7 +53,10 @@ func NewOSManager(opts ManagerOpts) (pkgOS.Manager, error) {
 
 // guestOSManager returns an OSmanager for inside-VM operations
 func guestOSManager() (pkgOS.Manager, error) {
-	dist := GetDistribution()
+	dist, err := GetDistribution()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read os-release file: %w", err)
+	}
 	switch {
 	case dist.Name == "fedora" && dist.Variant == "coreos":
 		return &pkgOS.OSTree{}, nil
@@ -67,14 +71,11 @@ type Distribution struct {
 }
 
 // GetDistribution checks the OS distribution
-func GetDistribution() Distribution {
-	dist := Distribution{
-		Name:    "unknown",
-		Variant: "unknown",
-	}
+func GetDistribution() (Distribution, error) {
+	dist := Distribution{}
 	f, err := os.Open("/etc/os-release")
 	if err != nil {
-		return dist
+		return dist, err
 	}
 	defer f.Close()
 
@@ -87,5 +88,8 @@ func GetDistribution() Distribution {
 			dist.Variant = strings.Trim(after, "\"")
 		}
 	}
-	return dist
+	if err := l.Err(); err != nil {
+		return dist, err
+	}
+	return dist, nil
 }
