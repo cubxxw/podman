@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/signal"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -86,7 +85,10 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 			callbackFuncs.CleanIfErr(&err)
 		}
 	}()
-	go callbackFuncs.CleanOnSignal()
+	// The following goroutine will block waiting
+	// for a termination signal. If no signal is received
+	// the routine is aborted when the main goroutine terminates.
+	go callbackFuncs.CleanOnSignal(false)
 
 	dirs, err := env.GetMachineDirs(mp.VMType())
 	if err != nil {
@@ -464,21 +466,52 @@ func stopLocked(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *mach
 }
 
 func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.StartOptions, updateSystemConn *bool) error {
-	var updateDefaultConnection bool
+	var (
+		err                     error
+		updateDefaultConnection bool
+	)
 
 	defaultBackoff := 500 * time.Millisecond
 	maxBackoffs := 6
-	signalChanClosed := false
+
+	// startup rollaback functions
+	// called if an error occurs or if a
+	// a termination signal is sent
+	callbackFuncs := machine.CleanUp()
+	defer callbackFuncs.CleanIfErr(&err)
+	// The following goroutine will block waiting
+	// for a termination signal. If no signal is received
+	// the routine is aborted when the main goroutine terminates.
+	go callbackFuncs.CleanOnSignal(opts.Quiet)
 
 	dirs, err := env.GetMachineDirs(mp.VMType())
 	if err != nil {
 		return err
 	}
+
 	if !opts.ReExec {
 		mc.Lock()
-		defer mc.Unlock()
+		// Use sync.Once to ensure that `mc.Unlock()` is called
+		// only once.
+		// Otherwise, when errors occur, it's called twice and panics:
+		//   - defer mcunlock()
+		//   - defer callbackFuncs.CleanIfErr()
+		var mcUnlockOnce sync.Once
+		mcunlock := func() error { //nolint: unparam
+			mcUnlockOnce.Do(func() {
+				logrus.Debug("unlocking machine config")
+				mc.Unlock()
+			})
+			return nil
+		}
+		callbackFuncs.Add(mcunlock)
+		// callbackFuncs are invoked when errors occurs or term signals
+		// are received. Thus we need to defer mcunlock for when Start()
+		// completes successfully
+		defer func() { _ = mcunlock() }()
 	}
-	if err := mc.Refresh(); err != nil {
+
+	if err = mc.Refresh(); err != nil {
 		return fmt.Errorf("reload config: %w", err)
 	}
 
@@ -498,7 +531,21 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 			return err
 		}
 		startLock.Lock()
-		defer startLock.Unlock()
+		// Use sync.Once to ensure that `startLock.Unlock()` is called
+		// only once.
+		// Otherwise, when errors occur, it's called twice and panics:
+		//   - defer startLockUnlock()
+		//   - defer callbackFuncs.CleanIfErr()
+		var startLockOnce sync.Once
+		startLockUnlock := func() error { //nolint: unparam
+			startLockOnce.Do(startLock.Unlock)
+			return nil
+		}
+		callbackFuncs.Add(startLockUnlock)
+		// callbackFuncs are invoked when errors occurs or term signals
+		// are received. Thus we need to defer startLockUnlock for when
+		// Start() completes successfully
+		defer func() { _ = startLockUnlock() }()
 
 		if err := checkExclusiveActiveVM(mp, mc); err != nil {
 			return err
@@ -540,42 +587,27 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 		}
 	}
 
-	// if the machine cannot continue starting due to a signal, ensure the state
-	// reflects the machine is no longer starting
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM, syscall.SIGPIPE)
-	go func() {
-		sig, ok := <-signalChan
-		if ok {
-			mc.Starting = false
-			logrus.Error("signal received when starting the machine: ", sig)
-
-			if err := mc.Write(); err != nil {
-				logrus.Error(err)
-			}
-
-			os.Exit(1)
-		}
-	}()
-
 	// Set starting to true
 	mc.Starting = true
-	if err := mc.Write(); err != nil {
+	if err = mc.Write(); err != nil {
+		mc.Starting = false
 		logrus.Error(err)
 	}
 
 	// Set starting to false on exit
-	defer func() {
+	startingFalse := func() error {
 		mc.Starting = false
-		if err := mc.Write(); err != nil {
-			logrus.Error(err)
+		if writeErr := mc.Write(); writeErr != nil {
+			logrus.Error("Error writing machine starting state to false: ", writeErr)
+			return writeErr
 		}
-
-		if !signalChanClosed {
-			signal.Stop(signalChan)
-			close(signalChan)
-		}
-	}()
+		return nil
+	}
+	callbackFuncs.Add(startingFalse)
+	// callbackFuncs are invoked when errors occurs or term signals
+	// are received. Thus we need to defer startingFalse for when
+	// Start() completes successfully
+	defer func() { _ = startingFalse() }()
 
 	gvproxyPidFile, err := dirs.RuntimeDir.AppendToNewVMFile("gvproxy.pid", nil)
 	if err != nil {
@@ -588,40 +620,39 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 		return err
 	}
 
-	callBackFuncs := machine.CleanUp()
-	defer callBackFuncs.CleanIfErr(&err)
-	go callBackFuncs.CleanOnSignal()
-
-	// Clean up gvproxy if start fails
-	cleanGV := func() error {
-		return machine.CleanupGVProxy(*gvproxyPidFile)
+	// Stop gvproxy if Start() fails or termination signal is received
+	cleanGv := func() error {
+		if cleanGvErr := machine.CleanupGVProxy(*gvproxyPidFile); cleanGvErr != nil {
+			return fmt.Errorf("unable to clean up gvproxy: %w", cleanGvErr)
+		}
+		return nil
 	}
-	callBackFuncs.Add(cleanGV)
+	callbackFuncs.Add(cleanGv)
 
 	// if there are generic things that need to be done, a preStart function could be added here
 	// should it be extensive
 
-	// releaseFunc is if the provider starts a vm using a go command
-	// and we still need control of it while it is booting until the ready
-	// socket is tripped
-	releaseCmd, WaitForReady, err := mp.StartVM(mc)
+	// StartVM spawns the VM process and returns two callback functions:
+	// - releaseCmd: releases any resource associated with the VM
+	//               Cmd.Process (typically cmd.Process.Release())
+	// - waitForReady: waits until the VM process is ready and returns an
+	//                 error it fails to start
+	releaseCmd, waitForReady, err := mp.StartVM(mc)
 	if err != nil {
 		return err
 	}
-
-	if WaitForReady == nil {
+	if releaseCmd != nil { // some providers can return nil here (hyperv)
+		callbackFuncs.Add(releaseCmd)
+		// callbackFuncs are invoked when errors occurs or term signals
+		// are received. Thus we need to defer releaseCmd for when
+		// Start() completes successfully
+		defer func() { _ = releaseCmd() }()
+	}
+	if waitForReady == nil {
 		return errors.New("no valid wait function returned")
 	}
-
-	if err := WaitForReady(); err != nil {
+	if err = waitForReady(); err != nil {
 		return err
-	}
-
-	if releaseCmd != nil && releaseCmd() != nil { // some providers can return nil here (hyperv)
-		if err := releaseCmd(); err != nil {
-			// I think it is ok for a "light" error?
-			logrus.Error(err)
-		}
 	}
 
 	if !opts.NoInfo && !mc.HostUser.Rootful {
@@ -650,17 +681,12 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 		return errors.New(msg)
 	}
 
-	// now that the machine has transitioned into the running state, we don't need a goroutine listening for SIGINT or SIGTERM to handle state
-	signal.Stop(signalChan)
-	close(signalChan)
-	signalChanClosed = true
-
-	if err := proxyenv.ApplyProxies(mc); err != nil {
+	if err = proxyenv.ApplyProxies(mc); err != nil {
 		return err
 	}
 
 	// mount the volumes to the VM
-	if err := mp.MountVolumesToVM(mc, opts.Quiet); err != nil {
+	if err = mp.MountVolumesToVM(mc, opts.Quiet); err != nil {
 		return err
 	}
 

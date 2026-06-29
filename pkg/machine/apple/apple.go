@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"os/signal"
 	"syscall"
 	"time"
 
@@ -72,17 +73,14 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 		return nil, nil, err
 	}
 	// Set user networking with gvproxy
-
 	gvproxySocket, err := mc.GVProxySocket()
 	if err != nil {
 		return nil, nil, err
 	}
-
 	// Wait on gvproxy to be running and aware
 	if err := sockets.WaitForSocketWithBackoffs(gvProxyMaxBackoffAttempts, gvProxyWaitBackoff, gvproxySocket.GetPath(), "gvproxy"); err != nil {
 		return nil, nil, err
 	}
-
 	netDevice.SetUnixSocketPath(gvproxySocket.GetPath())
 
 	// create a one-time virtual machine for starting because we dont want all this information in the
@@ -244,24 +242,62 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 		return nil, nil, err
 	}
 
-	returnFunc := func() error {
+	// Start a goroutine that will evenutally propagate a
+	// terminate signal to the VM process.
+	// If the user decides to abort `podman machine start`
+	// while the VM is starting, we want the VM to be stopped
+	// too. Or the machine will be left in an inconsistent
+	// state. Note that the goroutine will wait until the
+	// the main goroutine completes.
+	term := make(chan os.Signal, 1)
+	signal.Notify(term, os.Interrupt, syscall.SIGTERM)
+	// Get the PID first because cmd.Process will
+	// be released in the main thread
+	pid := cmd.Process.Pid
+	go func() {
+		<-term
+		logrus.Debugf("Termination signal forwarded to the VM process (PID: %d)\n", pid)
+		p, err := os.FindProcess(pid)
+		if err != nil {
+			logrus.Errorf("Failed to find process %d: %v", pid, err)
+			return
+		}
+		err = p.Signal(os.Interrupt)
+		if err != nil {
+			logrus.Errorf("Termination signal received, but terminating the VM process (PID: %d) failed: %v", pid, err)
+			return
+		}
+		// Wait and release the resources associated with the process
+		if _, err := p.Wait(); err != nil {
+			logrus.Debugf("Failed waiting for the process after terminating it: %v", err)
+		}
+	}()
+
+	// waitForReadyFunc is the callback that the caller of StartVM()
+	// uses to block its execution until the the VM is ready or an error
+	// occurs
+	waitForReadyFunc := func() error {
 		processErrChan := make(chan error)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
+		// The VM readiness will be communicated on readyChan. In the
+		// meantime, the following goroutine checks every 500ms that the VM
+		// process is running. If it's not, returns an error on processErrChan.
 		go func() {
 			defer close(processErrChan)
+			ticker := time.NewTicker(500 * time.Millisecond)
+			defer ticker.Stop()
 			for {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-				}
 				if err := CheckProcessRunning(cmdBinary, cmd.Process.Pid); err != nil {
 					processErrChan <- err
 					return
 				}
-				// lets poll status every half second
-				time.Sleep(500 * time.Millisecond)
+				select {
+				case <-ctx.Done():
+					logrus.Debug("VM waitForReadyFunc goroutine: ctx done")
+					return
+				case <-ticker.C:
+				}
 			}
 		}()
 
@@ -279,7 +315,26 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 		}
 		return nil
 	}
-	return cmd.Process.Release, returnFunc, nil
+
+	// releaseCmdFunc is the callback that the caller of StartVM()
+	// uses to release the resources associated with cmd.Process.
+	// It's important to execute it after waitForReadyFunc completes,
+	// otherwise cmd.Process methods won't work anymore.
+	relCmdFunc := func() error {
+		if err := cmd.Process.Release(); err != nil {
+			logrus.Errorf("error releasing VM Start command associated resources: %v", err)
+		}
+		if ignitionSocket != nil {
+			if err := ignitionSocket.Delete(); err != nil {
+				logrus.Errorf("unable to delete ignition socket: %v", err)
+			}
+		}
+		if err := readySocket.Delete(); err != nil {
+			logrus.Errorf("unable to delete ready socket: %v", err)
+		}
+		return nil
+	}
+	return relCmdFunc, waitForReadyFunc, nil
 }
 
 // CheckProcessRunning checks non blocking if the pid exited

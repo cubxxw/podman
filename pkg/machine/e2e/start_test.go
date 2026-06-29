@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os/exec"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -348,6 +350,65 @@ var _ = Describe("podman machine start", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(sshCertFile).To(Exit(0))
 		Expect(sshCertFile.outputToString()).To(Equal(certFileName))
+	})
+	It("start interrupted by SIGTERM while waiting for VM start", func() {
+		if !isVmtype(define.AppleHvVirt) && !isVmtype(define.LibKrun) {
+			Skip("SIGTERM interruption is supported on macOS only")
+		}
+		// Use the provider binary to pgrep the VM process
+		var vmProcess string
+		switch testProvider.VMType() {
+		case define.AppleHvVirt:
+			vmProcess = "vfkit"
+		case define.LibKrun:
+			vmProcess = "krunkit"
+		default:
+		}
+
+		i := new(initMachine)
+		initSession, err := mb.setCmd(i.withImage(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(initSession).To(Exit(0))
+
+		s := new(startMachine)
+		startSession, err := mb.setCmd(s).runWithoutWait()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Wait 45s for the VM process spawned by `podman machine start`
+		Eventually(func() error {
+			_, err := exec.Command("pgrep", vmProcess).Output()
+			return err
+		}, 45*time.Second, 500*time.Millisecond).Should(Succeed())
+
+		// Send a term signal now (podman machine start is waiting for
+		// the VM process readiness)
+		startSession.Signal(syscall.SIGTERM)
+
+		// Wait 30s for the podman machine start process to return (no deadlock)
+		Eventually(startSession, 30*time.Second).Should(Exit())
+		Expect(startSession.ExitCode()).ToNot(Equal(0))
+
+		// Wait 30s for the VM process to return (SIGTERM has been forwarded)
+		Eventually(func() error {
+			_, err := exec.Command("pgrep", vmProcess).Output()
+			return err
+		}, 30*time.Second, 500*time.Millisecond).ShouldNot(Succeed())
+
+		// Verify machine state is Stopped
+		inspect := new(inspectMachine)
+		inspectSession, err := mb.setCmd(inspect.withFormat("{{.State}}")).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(inspectSession).To(Exit(0))
+		Expect(inspectSession.outputToString()).To(Equal(define.Stopped))
+
+		// Verify no orphan gvproxy
+		_, err = pgrep("gvproxy")
+		Expect(err).To(HaveOccurred(), "gvproxy should not be running after SIGTERM cleanup")
+
+		// Restart without interrupting and confirm that completes without error
+		startSession, err = mb.setCmd(s).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(startSession).To(Exit(0))
 	})
 })
 
