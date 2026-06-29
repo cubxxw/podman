@@ -21,6 +21,8 @@ removal unless **--force** is used.
 
 Remove all unused volumes (anonymous and named). Without this option, only anonymous unused volumes are removed.
 
+**--all** can be combined with **--filter**: **--all** widens the set of candidate volumes to all unused ones, and the filters then restrict which of those are removed. For example, **--all --filter label!=keep** removes every unused volume that does not have the *keep* label.
+
 #### **--dry-run**
 
 Show which volumes would be pruned without removing them.
@@ -75,6 +77,11 @@ $ podman volume prune --force
 Prune all unused volumes (anonymous and named).
 ```
 $ podman volume prune --all --force
+```
+
+Prune all unused volumes except those with a specific label (combine **--all** with a filter).
+```
+$ podman volume prune --all --force --filter label!=keep
 ```
 
 Prune all unused volumes using the filter (equivalent to **--all**).
