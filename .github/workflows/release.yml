@@ -123,10 +123,14 @@ jobs:
     - name: Download all artifacts
       uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
     - name: Show artifacts
+      env:
+        VERSION: ${{ needs.check.outputs.version }}
       run: |
-        mv mac-installers/* release-artifacts
-        mv win-msi-amd64/* release-artifacts
-        mv win-msi-arm64/* release-artifacts
+        mkdir -p release-artifacts
+        mv "mac-installers-$VERSION"/* release-artifacts/
+        mv "win-msi-amd64-$VERSION"/* release-artifacts/
+        mv "win-msi-arm64-$VERSION"/* release-artifacts/
+        mv "release-artifacts-$VERSION"/* release-artifacts/
         pushd release-artifacts
         sha256sum * > shasums
         popd
