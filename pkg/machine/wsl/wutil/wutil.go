@@ -4,6 +4,7 @@ package wutil
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -52,11 +53,7 @@ func SilentExecCmd(args ...string) *exec.Cmd {
 
 func parseWSLStatus() wslStatus {
 	onceStatus.Do(func() {
-		status = wslStatus{
-			installed:         false,
-			vmpFeatureEnabled: false,
-			wslFeatureEnabled: false,
-		}
+		status = wslStatus{}
 		cmd := SilentExecCmd("--status")
 		out, err := cmd.StdoutPipe()
 		cmd.Stderr = nil
@@ -66,14 +63,17 @@ func parseWSLStatus() wslStatus {
 		if err = cmd.Start(); err != nil {
 			return
 		}
-
 		status = matchOutputLine(out)
-
-		if err := cmd.Wait(); err != nil {
-			return
+		err = cmd.Wait()
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			// If `wsl --status` returns an exit error
+			// we assume that WSL isn't installed and
+			// override whatever was returned by
+			// matchOutputLine()
+			status = wslStatus{}
 		}
 	})
-
 	return status
 }
 

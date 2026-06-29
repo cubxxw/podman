@@ -91,6 +91,9 @@ func (w WSLStubber) PrepareIgnition(_ *vmconfigs.MachineConfig, _ *ignition.Igni
 }
 
 func (w WSLStubber) Exists(name string) (bool, error) {
+	if !wutil.IsWSLInstalled() {
+		return false, nil
+	}
 	return isWSLExist(env.WithPodmanPrefix(name))
 }
 
