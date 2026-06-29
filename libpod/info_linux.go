@@ -112,6 +112,9 @@ func getCPUUtilization() (*define.CPUUsage, error) {
 	for scanner.Scan() {
 		break
 	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
 	// column 1 is user, column 3 is system, column 4 is idle
 	stats := strings.Fields(scanner.Text())
 	return statToPercent(stats)

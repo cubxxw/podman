@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -136,7 +137,9 @@ func TestMatchOutputLine(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.winVariant, func(t *testing.T) {
 			reader := io.NopCloser(strings.NewReader(tt.statusOutput))
-			assert.Equal(t, tt.want, matchOutputLine(reader))
+			status, err := matchOutputLine(reader)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, status)
 		})
 	}
 }

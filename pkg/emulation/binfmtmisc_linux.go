@@ -156,6 +156,9 @@ func parseBinfmtMisc(path string, r io.Reader) (int, []byte, []byte, error) {
 		}
 		continue
 	}
+	if err := scanner.Err(); err != nil {
+		return -1, nil, nil, err
+	}
 	if magicString == "" || maskString == "" { // entry is missing some info we need here
 		return -1, nil, nil, nil
 	}

@@ -14,6 +14,7 @@ import (
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/podman/v6/libpod"
@@ -37,6 +38,9 @@ var isMqueueSupported = sync.OnceValue(func() bool {
 		if len(fields) > 0 && fields[len(fields)-1] == "mqueue" {
 			return true
 		}
+	}
+	if err := scanner.Err(); err != nil {
+		logrus.Warnf("Failed to read /proc/filesystems: %v, assuming mqueue is not supported", err)
 	}
 	return false
 })
