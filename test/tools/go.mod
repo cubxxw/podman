@@ -3,6 +3,7 @@ module go.podman.io/podman/test/tools
 // Warning: if there is a "toolchain" directive anywhere in this file (and most of the
 // time there shouldn't be), its version must be an exact match to the "go" directive.
 
+// Important when updating the version here also update it in .readthedocs.yaml
 go 1.25.0
 
 require (

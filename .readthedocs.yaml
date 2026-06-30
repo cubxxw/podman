@@ -9,6 +9,7 @@ build:
   os: ubuntu-26.04
   tools:
     python: "3.14"
+    # Note this must be at least the go version from test/tools/go.mod in order to be able to build swagger.
     golang: "1.25"
   jobs:
     pre_build:
