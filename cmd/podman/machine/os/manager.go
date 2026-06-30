@@ -5,6 +5,7 @@ package os
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
@@ -54,10 +55,10 @@ func NewOSManager(opts ManagerOpts) (pkgOS.Manager, error) {
 func guestOSManager() (pkgOS.Manager, error) {
 	dist := GetDistribution()
 	switch {
-	case dist.Name == "fedora" && dist.Variant == "coreos":
+	case dist.Name == "fedora" && dist.Variant == "podman-machine-os":
 		return &pkgOS.OSTree{}, nil
 	default:
-		return nil, errors.New("unsupported OS")
+		return nil, fmt.Errorf("unsupported OS/Variant: %s/%s", dist.Name, dist.Variant)
 	}
 }
 
