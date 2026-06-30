@@ -24,7 +24,12 @@ func (ic *ContainerEngine) Events(_ context.Context, opts entities.EventsOptions
 	binChan := make(chan entities.Event)
 	go func() {
 		for e := range binChan {
-			opts.EventChan <- events.ReadResult{Event: entities.ConvertToLibpodEvent(e)}
+			event, err := entities.ConvertToLibpodEvent(e)
+			if err != nil {
+				opts.EventChan <- events.ReadResult{Error: fmt.Errorf("converting event from server: %w", err)}
+				continue
+			}
+			opts.EventChan <- events.ReadResult{Event: event}
 		}
 		close(opts.EventChan)
 	}()
