@@ -2660,6 +2660,17 @@ var _ = Describe("Podman kube play", func() {
 		Expect(kube).Should(ExitWithError(125, `container "podDoesntHaveAnImage" is missing the required 'image' field`))
 	})
 
+	It("container start error identifies the container by name", func() {
+		pod := getPod(withCtr(getCtr(withImage(ALPINE), withCmd([]string{"/no/such/command"}), withArg(nil))))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitWithError(125, "failed to start 1 containers"))
+		Expect(kube.ErrorToString()).To(ContainSubstring(getCtrNameInPod(pod)))
+	})
+
 	It("support container liveness probe", func() {
 		err := writeYaml(livenessProbePodYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
