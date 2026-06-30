@@ -47,10 +47,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 		attachStdin = streams.AttachInput
 	}
 
-	var ociLog string
-	if logrus.GetLevel() != logrus.DebugLevel && r.supportsJSON {
-		ociLog = c.execOCILog(sessionID)
-	}
+	ociLog := c.execOCILog(sessionID)
 
 	execCmd, pipes, err := r.startExec(c, sessionID, options, attachStdin, ociLog)
 	if err != nil {
@@ -115,10 +112,7 @@ func (r *ConmonOCIRuntime) ExecContainerHTTP(ctr *Container, sessionID string, o
 		attachStdin = streams.Stdin
 	}
 
-	var ociLog string
-	if logrus.GetLevel() != logrus.DebugLevel && r.supportsJSON {
-		ociLog = ctr.execOCILog(sessionID)
-	}
+	ociLog := ctr.execOCILog(sessionID)
 
 	execCmd, pipes, err := r.startExec(ctr, sessionID, options, attachStdin, ociLog)
 	if err != nil {
@@ -163,10 +157,7 @@ func (r *ConmonOCIRuntime) ExecContainerDetached(ctr *Container, sessionID strin
 		return -1, fmt.Errorf("must provide exec options to ExecContainerHTTP: %w", define.ErrInvalidArg)
 	}
 
-	var ociLog string
-	if logrus.GetLevel() != logrus.DebugLevel && r.supportsJSON {
-		ociLog = ctr.execOCILog(sessionID)
-	}
+	ociLog := ctr.execOCILog(sessionID)
 
 	execCmd, pipes, err := r.startExec(ctr, sessionID, options, stdin, ociLog)
 	if err != nil {

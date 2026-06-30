@@ -671,4 +671,19 @@ RUN useradd -u 1000 auser`, FEDORA_MINIMAL)
 		execSession.WaitWithDefaultTimeout()
 		Expect(execSession).Should(ExitWithError(137, ""))
 	})
+
+	It("podman exec command not in $PATH error", func() {
+		session := podmanTest.RunTopContainer("testctr")
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		execResult := podmanTest.Podman([]string{"exec", "testctr", "kjhasdf"})
+		execResult.WaitWithDefaultTimeout()
+		Expect(execResult).Should(ExitWithError(127, "not found in $PATH"))
+
+		// Test again with log level debug, this must produce the same error
+		execResult = podmanTest.Podman([]string{"--log-level=debug", "exec", "testctr", "kjhasdf"})
+		execResult.WaitWithDefaultTimeout()
+		Expect(execResult).Should(ExitWithError(127, "not found in $PATH"))
+	})
 })

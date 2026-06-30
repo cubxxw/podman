@@ -1009,7 +1009,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	defer errorhandling.CloseQuiet(parentStartPipe)
 
 	var ociLog string
-	if logrus.GetLevel() != logrus.DebugLevel && r.supportsJSON {
+	if r.supportsJSON {
 		ociLog = filepath.Join(ctr.state.RunDir, "oci-log")
 	}
 
