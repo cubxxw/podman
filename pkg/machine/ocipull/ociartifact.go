@@ -105,6 +105,7 @@ func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint 
 					return nil, fmt.Errorf("failed to add version tag to %q: %w", endpoint, err)
 				}
 				endpoint = "docker://" + taggedRef.String()
+				cache = true
 			}
 		}
 		// If parsing failed, just continue with the original endpoint
