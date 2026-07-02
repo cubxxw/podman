@@ -343,5 +343,9 @@ func (r *Runtime) GetHostDistributionInfo() define.DistributionInfo {
 			dist.Codename = strings.Trim(after, "\"")
 		}
 	}
+	if err := l.Err(); err != nil {
+		// Not much we can do here, log a warning, no need to full fail info over this anyway.
+		logrus.Warnf("Failed to read /etc/os-release: %v", err)
+	}
 	return dist
 }

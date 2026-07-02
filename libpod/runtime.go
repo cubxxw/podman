@@ -1203,6 +1203,10 @@ func graphRootMounted() bool {
 			return true
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		logrus.Errorf("Failed to read /run/.containerenv: %v", err)
+		return false
+	}
 	return false
 }
 

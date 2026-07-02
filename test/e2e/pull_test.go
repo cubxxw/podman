@@ -666,7 +666,7 @@ var _ = Describe("Podman pull", func() {
 		It("From local registry", func() {
 			SkipIfRemote("Remote pull does not support decryption")
 
-			if podmanTest.Host.Arch == "ppc64le" {
+			if runtime.GOARCH == "ppc64le" {
 				Skip("No registry image for ppc64le")
 			}
 

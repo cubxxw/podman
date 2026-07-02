@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -459,7 +460,7 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(Not(BeEmpty()))
 		Expect(session).Should(ExitCleanly())
-		if podmanTest.Host.Arch == "amd64" {
+		if runtime.GOARCH == "amd64" {
 			session = podmanTest.Podman([]string{"exec", "maskCtr2", "ls", "/proc/acpi"})
 			session.WaitWithDefaultTimeout()
 			Expect(session.OutputToString()).To(Not(BeEmpty()))
@@ -495,7 +496,7 @@ var _ = Describe("Podman run", func() {
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).Should(HaveLen(1))
 
-		if podmanTest.Host.Arch == "amd64" {
+		if runtime.GOARCH == "amd64" {
 			session = podmanTest.Podman([]string{"run", "--security-opt", "unmask=/proc/a*", ALPINE, "ls", "/proc/acpi"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
@@ -2286,7 +2287,7 @@ WORKDIR /madethis`, BB)
 	It("podman run and decrypt from local registry", func() {
 		SkipIfRemote("Remote run does not support decryption")
 
-		if podmanTest.Host.Arch == "ppc64le" {
+		if runtime.GOARCH == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
 

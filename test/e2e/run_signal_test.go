@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -24,7 +25,7 @@ const (
 
 var _ = Describe("Podman run with --sig-proxy", func() {
 	Specify("signals are forwarded to container using sig-proxy", func() {
-		if podmanTest.Host.Arch == "ppc64le" {
+		if runtime.GOARCH == "ppc64le" {
 			Skip("Doesn't work on ppc64le")
 		}
 		signal := syscall.SIGFPE

@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -53,7 +55,6 @@ func SilentExecCmd(args ...string) *exec.Cmd {
 
 func parseWSLStatus() wslStatus {
 	onceStatus.Do(func() {
-		status = wslStatus{}
 		cmd := SilentExecCmd("--status")
 		out, err := cmd.StdoutPipe()
 		cmd.Stderr = nil
@@ -63,7 +64,8 @@ func parseWSLStatus() wslStatus {
 		if err = cmd.Start(); err != nil {
 			return
 		}
-		status = matchOutputLine(out)
+		var outputErr error
+		status, outputErr = matchOutputLine(out)
 		err = cmd.Wait()
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
@@ -71,6 +73,10 @@ func parseWSLStatus() wslStatus {
 			// we assume that WSL isn't installed and
 			// override whatever was returned by
 			// matchOutputLine()
+			status = wslStatus{}
+		}
+		if outputErr != nil {
+			logrus.Errorf("Failed to read wsl --status output: %v", outputErr)
 			status = wslStatus{}
 		}
 	})
@@ -93,7 +99,7 @@ func IsWSLStoreVersionInstalled() bool {
 	return true
 }
 
-func matchOutputLine(output io.ReadCloser) wslStatus {
+func matchOutputLine(output io.ReadCloser) (wslStatus, error) {
 	status := wslStatus{
 		installed:         true,
 		vmpFeatureEnabled: true,
@@ -118,5 +124,8 @@ func matchOutputLine(output io.ReadCloser) wslStatus {
 			}
 		}
 	}
-	return status
+	if err := scanner.Err(); err != nil {
+		return status, err
+	}
+	return status, nil
 }

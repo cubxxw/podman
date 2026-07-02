@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -68,7 +69,7 @@ var _ = Describe("Podman run with volumes", func() {
 	})
 
 	It("podman run with --mount flag", func() {
-		if podmanTest.Host.Arch == "ppc64le" {
+		if runtime.GOARCH == "ppc64le" {
 			Skip("skip failing test on ppc64le")
 		}
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")

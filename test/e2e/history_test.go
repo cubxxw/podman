@@ -3,6 +3,8 @@
 package integration
 
 import (
+	"runtime"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "go.podman.io/podman/v6/test/utils"
@@ -66,7 +68,7 @@ var _ = Describe("Podman history", func() {
 		Expect(len(lines[1])).To(BeNumerically(">", 45))
 
 		// Size is different on other architectures
-		if podmanTest.Host.Arch == "amd64" {
+		if runtime.GOARCH == "amd64" {
 			session = podmanTest.Podman([]string{"history", "--no-trunc", "--format", "{{.Size}}", ALPINE})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())

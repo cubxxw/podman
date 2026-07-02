@@ -5,6 +5,7 @@ package integration
 import (
 	"fmt"
 	"path/filepath"
+	"runtime"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -145,7 +146,7 @@ var _ = Describe("Podman load", func() {
 	})
 
 	It("podman load multiple tags", func() {
-		if podmanTest.Host.Arch == "ppc64le" {
+		if runtime.GOARCH == "ppc64le" {
 			Skip("skip on ppc64le")
 		}
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
