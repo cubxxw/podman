@@ -58,10 +58,10 @@ func guestOSManager() (pkgOS.Manager, error) {
 		return nil, fmt.Errorf("failed to read os-release file: %w", err)
 	}
 	switch {
-	case dist.Name == "fedora" && dist.Variant == "coreos":
+	case dist.Name == "fedora" && dist.Variant == "podman-machine-os":
 		return &pkgOS.OSTree{}, nil
 	default:
-		return nil, errors.New("unsupported OS")
+		return nil, fmt.Errorf("unsupported OS/Variant: %s/%s", dist.Name, dist.Variant)
 	}
 }
 

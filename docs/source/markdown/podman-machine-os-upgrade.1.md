@@ -18,6 +18,8 @@ then the OS changes will be applied to `podman-machine-default`.
 
 The machine must be started for this command to be run.
 
+Note: This command is not supported with the WSL machine provider.
+
 ### UPGRADE LOGIC
 
 The upgrade function compares the client version against the machine version using semantic versioning (major.minor
