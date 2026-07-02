@@ -336,9 +336,14 @@ validate: validate-source validate-binaries ## Run all validation checks (lint, 
 # not automated right now.  The hope is that eventually the quay.io/libpod/fedora_podman is multiarch and can replace this
 # image in the future.
 .PHONY: validatepr
+# When run from a git worktree, $(CURDIR)/.git is a file pointing to the parent
+# git dir outside the bind mount; also mount that dir at its own path so git
+# inside the container can resolve and not throw ownership errors.
+validatepr: GIT_COMMON_DIR = $(shell git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
 validatepr: ## Run full PR validation in a container (lint, format, checks)
 	$(PODMANCMD) run --rm --init --tmpfs /tmp \
 		-v $(CURDIR):/go/src/github.com/containers/podman \
+		$(if $(GIT_COMMON_DIR),-v $(GIT_COMMON_DIR):$(GIT_COMMON_DIR)) \
 		-v validatepr-gocache:/root/.cache/go-build \
 		-v validatepr-gomodcache:/root/go/pkg/mod \
 		-v validatepr-lintcache:/root/.cache/golangci-lint \
