@@ -480,6 +480,15 @@ var _ = Describe("podman machine init", func() {
 		Expect(sshSession2).To(Exit(0))
 		output := strings.TrimSpace(sshSession2.outputToString())
 		Expect(output).To(Equal("/run/podman/podman.sock"))
+
+		// Ensure we can at least connect to the rootful podman socket and that it is actually a rootful one by checking the paths
+		bm := basicMachine{}
+		info, err := mb.setCmd(bm.withPodmanCommand([]string{"info"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(info).To(Exit(0))
+		Expect(info.outputToString()).To(ContainSubstring("/run/podman/podman.sock"))
+		Expect(info.outputToString()).To(ContainSubstring("serviceIsRemote: true"))
+		Expect(info.outputToString()).To(ContainSubstring("/var/lib/containers"))
 	})
 
 	It("init should cleanup on failure", func() {
