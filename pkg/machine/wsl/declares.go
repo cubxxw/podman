@@ -98,7 +98,8 @@ LoadCredential=
 const bindMountConfigDirSystemService = `
 [Unit]
 Description=Bind mount for config directory
-Before=podman.socket
+Before=multi-user.target
+After=local-fs.target
 
 [Service]
 RemainAfterExit=true
@@ -157,12 +158,13 @@ const (
 	podmanSocketDropin     = "podman.socket.d"
 	podmanSocketDropinPath = sysSystemdPath + "/" + podmanSocketDropin
 
-	configBindSysUnitName = "podman-mnt-config.service"
-	configBindSysUnitPath = sysSystemdPath + "/" + configBindSysUnitName
-	configBindSysUnitWant = sysSystemdWants + "/" + configBindSysUnitName
+	configBindSysUnitName           = "podman-mnt-config.service"
+	configBindSysUnitPath           = sysSystemdPath + "/" + configBindSysUnitName
+	configBindSysUnitWantsDirectory = sysSystemdPath + "/local-fs.target.wants"
+	configBindSysUnitWant           = configBindSysUnitWantsDirectory + "/" + configBindSysUnitName
 )
 
-const configBindServices = "mkdir -p " + userSystemdWants + " " + sysSystemdWants + " " + podmanSocketDropinPath + "\n" +
+const configBindServices = "mkdir -p " + userSystemdWants + " " + sysSystemdWants + " " + podmanSocketDropinPath + " " + configBindSysUnitWantsDirectory + "\n" +
 	"ln -fs " + bindUserUnitPath + " " + bindUserUnitWant + "\n" +
 	"ln -fs " + bindSysUnitPath + " " + bindSysUnitWant + "\n" +
 	"ln -fs " + configBindSysUnitPath + " " + configBindSysUnitWant + "\n"
