@@ -96,7 +96,7 @@ $ podman network create --subnet 192.168.33.0/24 --route 10.1.0.0/24,192.168.33.
 Create a network with a static subnet and a static route without a default
 route.
 ```
-$ podman network create --subnet 192.168.33.0/24 --route 10.1.0.0/24,192.168.33.10 --opt no_default_route=1 newnet
+$ podman network create --subnet 192.168.33.0/24 --route 10.1.0.0/24,192.168.33.10 --opt no_default_route=true newnet
 ```
 
 Create a Macvlan based network using the host interface eth0. Macvlan networks can only be used as root.
