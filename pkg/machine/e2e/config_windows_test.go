@@ -15,7 +15,10 @@ import (
 
 const podmanBinary = "../../../bin/windows/podman.exe"
 
-var fakeImagePath string = ""
+var (
+	fakeImagePath = ""
+	gvproxy       = "gvproxy.exe"
+)
 
 func initPlatform() {
 	switch testProvider.VMType().String() {
@@ -29,6 +32,7 @@ func initPlatform() {
 		fakeImagePath = fullFileName
 		fmt.Println("Created fake disk image: " + fakeImagePath)
 	case define.WSLVirt.String():
+		gvproxy = "win-sshproxy.exe"
 	default:
 		Fail(fmt.Sprintf("unknown Windows provider: %q", testProvider.VMType().String()))
 	}
@@ -50,7 +54,7 @@ func pgrep(n string) (string, error) {
 	}
 	strOut := string(out)
 	// in pgrep, if no running process is found, it exits 1 and the output is zilch
-	if strings.Contains(strOut, "INFO: No tasks are running which match the specified search") {
+	if strings.Contains(strOut, "INFO: No tasks") {
 		return "", fmt.Errorf("no task found")
 	}
 	return strOut, nil

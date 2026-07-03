@@ -198,7 +198,7 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exec).To(Exit(0))
 
-		out, err := pgrep("gvproxy")
+		out, err := pgrep(gvproxy)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(out).ToNot(BeEmpty())
 
@@ -213,8 +213,8 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(stopSession).To(Exit(0))
 
 		// gxproxy should exit after machine is stopped
-		out, _ = pgrep("gvproxy")
-		Expect(out).ToNot(ContainSubstring("gvproxy"))
+		out, _ = pgrep(gvproxy)
+		Expect(out).ToNot(ContainSubstring(gvproxy))
 	})
 
 	It("podman volume on non-standard path", func() {

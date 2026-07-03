@@ -7,10 +7,13 @@ import (
 	"os/exec"
 )
 
-var fakeImagePath string = os.DevNull
+var (
+	fakeImagePath = os.DevNull
+	gvproxy       = "gvproxy"
+)
 
-func pgrep(_ string) (string, error) {
-	out, err := exec.Command("pgrep", "gvproxy").Output()
+func pgrep(n string) (string, error) {
+	out, err := exec.Command("pgrep", n).Output()
 	return string(out), err
 }
 
