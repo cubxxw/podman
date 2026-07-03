@@ -45,6 +45,7 @@ import (
 	"go.podman.io/podman/v6/pkg/util"
 	"go.podman.io/storage/pkg/chrootarchive"
 	"go.podman.io/storage/pkg/fileutils"
+	"go.podman.io/storage/pkg/stringid"
 	yamlv3 "gopkg.in/yaml.v3"
 	"sigs.k8s.io/yaml"
 )
@@ -1165,8 +1166,18 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil && !errors.Is(err, define.ErrPodPartialFail) {
 			return nil, nil, err
 		}
-		for id, err := range podStartErrors {
-			playKubePod.ContainerErrors = append(playKubePod.ContainerErrors, fmt.Errorf("starting container %s: %w", id, err).Error())
+		if len(podStartErrors) > 0 {
+			ctrNames := make(map[string]string, len(containers))
+			for _, ctr := range containers {
+				ctrNames[ctr.ID()] = ctr.Name()
+			}
+			for id, err := range podStartErrors {
+				if name, ok := ctrNames[id]; ok {
+					playKubePod.ContainerErrors = append(playKubePod.ContainerErrors, fmt.Errorf("starting container %s (%s): %w", name, stringid.TruncateID(id), err).Error())
+				} else {
+					playKubePod.ContainerErrors = append(playKubePod.ContainerErrors, fmt.Errorf("starting container %s: %w", stringid.TruncateID(id), err).Error())
+				}
+			}
 		}
 
 		// Wait for each proxy to receive a READY message. Use a wait
