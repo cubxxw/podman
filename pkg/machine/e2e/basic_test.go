@@ -202,6 +202,23 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(out).ToNot(BeEmpty())
 
+		// Start a server on the host and send a request from a container
+		// using host.containers.internal and host.docker.internal
+		port := "62545"
+		msg := "message from the host"
+		url1 := "http://host.containers.internal:" + port
+		url2 := "http://host.docker.internal:" + port
+		s := startLocalHTTPServer(port, msg)
+		defer s.Close()
+		exec, err = mb.setCmd(bm.withPodmanCommand([]string{"exec", ctrName, "wget", "-q", "-O-", url1})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exec).To(Exit(0))
+		Expect(exec.outputToString()).To(Equal(msg))
+		exec, err = mb.setCmd(bm.withPodmanCommand([]string{"exec", ctrName, "wget", "-q", "-O-", url2})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exec).To(Exit(0))
+		Expect(exec.outputToString()).To(Equal(msg))
+
 		rmCon, err := mb.setCmd(bm.withPodmanCommand([]string{"rm", "-af"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rmCon).To(Exit(0))
@@ -346,6 +363,21 @@ func testHTTPServer(port string, shouldErr bool, expectedResponse string) {
 	body, err := io.ReadAll(resp.Body)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(string(body)).Should(Equal(expectedResponse))
+}
+
+func startLocalHTTPServer(port string, response string) *http.Server {
+	l, err := net.Listen("tcp", ":"+port)
+	Expect(err).ToNot(HaveOccurred())
+	s := &http.Server{
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			fmt.Fprint(w, response)
+		}),
+	}
+	go func() {
+		_ = s.Serve(l)
+		l.Close()
+	}()
+	return s
 }
 
 type TLSConfig struct {
