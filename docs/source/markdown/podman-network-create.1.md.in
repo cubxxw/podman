@@ -46,7 +46,13 @@ Ignore the create request if a network with the same name already exists instead
 
 #### **--route**=*route*
 
-A static route in the format `<destination in CIDR notation>,<gateway>,<route metric (optional)>`. This route will be added to every container in this network. Only available with the netavark backend. It can be specified multiple times if more than one static route is desired.
+A static route in the format `<destination in CIDR notation>,<gateway|type>,<route metric (optional)>`.
+The gateway must be a valid ip address or alternatively a type can be set instead which must be either
+of `blackhole`, `unreachable` or `prohibit` and means the subnet will not be routed anywhere.
+This route will be added to every container in this network. It can be specified multiple times if more than one static route is desired.
+
+Note, routes are added into the container namespace, if a container is given the CAP_NET_ADMIN capability it is able to alter
+the routes so this cannot be used for security relevant things in that case.
 
 @@option subnet
 
@@ -97,6 +103,11 @@ Create a network with a static subnet and a static route without a default
 route.
 ```
 $ podman network create --subnet 192.168.33.0/24 --route 10.1.0.0/24,192.168.33.10 --opt no_default_route=true newnet
+```
+
+Create a network with a route type blackhole. This means the traffic to the destination subnet will be dropped silently.
+```
+$ podman network create --route 10.1.0.0/24,blackhole --opt no_default_route=true newnet
 ```
 
 Create a Macvlan based network using the host interface eth0. Macvlan networks can only be used as root.
