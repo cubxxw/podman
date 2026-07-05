@@ -78,7 +78,7 @@ Options specific to type=**volume**:
 
 - *idmap*: If specified, create an idmapped mount to the target user namespace in the container.
   The idmap option is only supported by Podman in rootful mode. The Linux kernel does not allow the use of idmapped file systems for unprivileged users.
-  The idmap option supports a custom mapping that can be different than the user namespace used by the container.
+  The idmap option supports a custom mapping that can be different from the user namespace used by the container.
   The mapping can be specified after the idmap option like: `idmap=uids=0-1-10#10-11-10;gids=0-100-10`.  For each triplet, the first value is the
   start of the backing file system IDs that are mapped to the second value on the host.  The length of this mapping is given in the third value.
   Multiple ranges are separated with #.  If the specified mapping is prepended with a '@', then the mapping is considered relative to the container
@@ -100,7 +100,13 @@ Options specific to **bind** and **glob**:
 
 - *relabel*: *shared*, *private*.
 
-- *idmap*: *true* or *false* (default if unspecified: *false*).  If true, create an idmapped mount to the target user namespace in the container. The idmap option is only supported by Podman in rootful mode.
+- *idmap*: If specified, create an idmapped mount to the target user namespace in the container.
+  The idmap option is only supported by Podman in rootful mode. The Linux kernel does not allow the use of idmapped file systems for unprivileged users.
+  The idmap option supports a custom mapping that can be different from the user namespace used by the container.
+  The mapping can be specified after the idmap option like: `idmap=uids=0-1-10#10-11-10;gids=0-100-10`.  For each triplet, the first value is the
+  start of the backing file system IDs that are mapped to the second value on the host.  The length of this mapping is given in the third value.
+  Multiple ranges are separated with #.  If the specified mapping is prepended with a '@', then the mapping is considered relative to the container
+  user namespace. The host ID for the mapping is changed to account for the relative position of the container user in the container user namespace.
 
 - *U*, *chown*: *true* or *false* (default if unspecified: *false*). Recursively change the owner and group of the source volume based on the UID and GID of the container.
 
@@ -143,6 +149,10 @@ Examples:
 - `type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared`
 
 - `type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared,U=true`
+
+- `type=bind,src=/path/on/host,dst=/path/in/container,idmap`
+
+- `type=bind,src=/path/on/host,dst=/path/in/container,idmap=uids=0-1-10;gids=0-100-10`
 
 - `type=devpts,destination=/dev/pts`
 
