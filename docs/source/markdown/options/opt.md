@@ -14,7 +14,7 @@ All drivers accept the `mtu`, `metric`, `no_default_route` and options.
 
 - `mtu`: Sets the Maximum Transmission Unit (MTU) and takes an integer value.
 - `metric` Sets the Route Metric for the default route created in every container joined to this network. Accepts a positive integer value. Can only be used with the Netavark network backend.
-- `no_default_route`: If set to 1, Podman will not automatically add a default route to subnets. Routes can still be added
+- `no_default_route`: If set to `true`, Podman will not automatically add a default route to subnets. Routes can still be added
 manually by creating a custom route using `--route`.
 
 Additionally the `bridge` driver supports the following options:
