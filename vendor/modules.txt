@@ -15,7 +15,7 @@ github.com/Azure/go-ansiterm/winterm
 ## explicit; go 1.18
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal
-# github.com/Masterminds/semver/v3 v3.4.0
+# github.com/Masterminds/semver/v3 v3.5.0
 ## explicit; go 1.21
 github.com/Masterminds/semver/v3
 # github.com/Microsoft/go-winio v0.6.2
@@ -82,9 +82,6 @@ github.com/containerd/typeurl/v2
 # github.com/containernetworking/plugins v1.9.1
 ## explicit; go 1.24.2
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/common v0.64.2
-## explicit; go 1.23.3
-github.com/containers/common/pkg/strongunits
 # github.com/containers/gvisor-tap-vsock v0.8.9
 ## explicit; go 1.25.0
 github.com/containers/gvisor-tap-vsock/pkg/types
@@ -144,8 +141,8 @@ github.com/coreos/go-systemd/v22/dbus
 github.com/coreos/go-systemd/v22/internal/dlopen
 github.com/coreos/go-systemd/v22/journal
 github.com/coreos/go-systemd/v22/sdjournal
-# github.com/crc-org/vfkit v0.6.3
-## explicit; go 1.24.2
+# github.com/crc-org/vfkit v0.6.4
+## explicit; go 1.25.6
 github.com/crc-org/vfkit/pkg/config
 github.com/crc-org/vfkit/pkg/rest/define
 github.com/crc-org/vfkit/pkg/util
