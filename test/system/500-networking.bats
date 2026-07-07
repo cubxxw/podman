@@ -432,10 +432,8 @@ EOCONF
     _test_network_reload rootlessport
 }
 
-# bats test_tags=ci:parallel
-# TODO: enable after new passt release with SELinux fix for pasta.sock (pasta_t + ifconfig_var_run_t)
+# CANNOT BE PARALLELIZED: switches rootless_port_forwarder, unsafe with other containers running
 @test "podman network reload - pasta forwarder" {
-    skip "disabled: pasta SELinux policy denies pasta.sock creation (needs passt release with fix)"
     skip_if_remote "podman network reload does not have remote support"
     is_rootless || skip "pasta port forwarder requires rootless"
     type -P pesto >/dev/null || skip "pesto not available"
@@ -645,10 +643,8 @@ EOCONF
     _test_network_connect_disconnect rootlessport
 }
 
-# bats test_tags=ci:parallel
-# TODO: enable after new passt release with SELinux fix for pasta.sock (pasta_t + ifconfig_var_run_t)
+# CANNOT BE PARALLELIZED: switches rootless_port_forwarder, unsafe with other containers running
 @test "podman network connect/disconnect with port forwarding - pasta forwarder" {
-    skip "disabled: pasta SELinux policy denies pasta.sock creation (needs passt release with fix)"
     is_rootless || skip "pasta port forwarder requires rootless"
     type -P pesto >/dev/null || skip "pesto not available"
     _test_network_connect_disconnect pasta
@@ -759,10 +755,8 @@ EOCONF
     _test_network_after_restart rootlessport
 }
 
-# bats test_tags=ci:parallel
-# TODO: enable after new passt release with SELinux fix for pasta.sock (pasta_t + ifconfig_var_run_t)
+# CANNOT BE PARALLELIZED: switches rootless_port_forwarder, unsafe with other containers running
 @test "podman network after restart - pasta forwarder" {
-    skip "disabled: pasta SELinux policy denies pasta.sock creation (needs passt release with fix)"
     is_rootless || skip "pasta port forwarder requires rootless"
     type -P pesto >/dev/null || skip "pesto not available"
     _test_network_after_restart pasta
