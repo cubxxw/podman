@@ -136,7 +136,7 @@ func init() {
 }
 
 func Execute() {
-	if err := rootCmd.ExecuteContext(registry.Context()); err != nil {
+	if cmd, err := rootCmd.ExecuteContextC(registry.Context()); err != nil {
 		if registry.GetExitCode() == 0 {
 			registry.SetExitCode(define.ExecErrorCodeGeneric)
 		}
@@ -145,7 +145,7 @@ func Execute() {
 				fmt.Fprintln(os.Stderr, "Cannot connect to Podman. Please verify your connection to the Linux system using `podman system connection list`, or try `podman machine init` and `podman machine start` to manage a new Linux VM")
 			}
 		}
-		fmt.Fprintln(os.Stderr, formatError(err))
+		fmt.Fprintln(os.Stderr, formatError(err, cmd))
 	}
 
 	_ = shutdown.Stop()
@@ -726,7 +726,7 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 	}
 }
 
-func formatError(err error) string {
+func formatError(err error, cmd *cobra.Command) string {
 	var message string
 	switch {
 	case errors.Is(err, define.ErrOCIRuntime):
@@ -737,7 +737,9 @@ func formatError(err error) string {
 			define.ErrOCIRuntime.Error(),
 			strings.TrimSuffix(err.Error(), ": "+define.ErrOCIRuntime.Error()),
 		)
-	case errors.Is(err, storage.ErrDuplicateName):
+	case errors.Is(err, storage.ErrDuplicateName) && cmd != nil && cmd.Flags().Lookup("replace") != nil:
+		// Only suggest --replace when the invoked command actually has
+		// the flag (e.g. "manifest create" does not).
 		message = fmt.Sprintf("Error: %s, or use --replace to instruct Podman to do so.", err.Error())
 	default:
 		if logrus.IsLevelEnabled(logrus.TraceLevel) {

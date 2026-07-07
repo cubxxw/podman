@@ -6,16 +6,48 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"go.podman.io/podman/v6/libpod/define"
+	"go.podman.io/storage"
 )
 
 func TestFormatError(t *testing.T) {
 	err := errors.New("unknown error")
-	output := formatError(err)
+	output := formatError(err, nil)
 	expected := fmt.Sprintf("Error: %v", err)
 
 	if output != expected {
 		t.Errorf("Expected \"%s\" to equal \"%s\"", output, err.Error())
+	}
+}
+
+func TestFormatErrorDuplicateName(t *testing.T) {
+	withReplace := &cobra.Command{Use: "create"}
+	withReplace.Flags().Bool("replace", false, "")
+	withoutReplace := &cobra.Command{Use: "create"}
+
+	err := fmt.Errorf("that name is already in use: %w", storage.ErrDuplicateName)
+	hint := "or use --replace to instruct Podman to do so."
+
+	tests := []struct {
+		name     string
+		cmd      *cobra.Command
+		wantHint bool
+	}{
+		{name: "command with --replace flag", cmd: withReplace, wantHint: true},
+		{name: "command without --replace flag", cmd: withoutReplace, wantHint: false},
+		{name: "no command", cmd: nil, wantHint: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := formatError(err, tt.cmd)
+			if got := strings.Contains(output, hint); got != tt.wantHint {
+				t.Errorf("formatError() = %q, want hint contained: %v", output, tt.wantHint)
+			}
+			if !strings.Contains(output, err.Error()) {
+				t.Errorf("formatError() = %q, want the original error message included", output)
+			}
+		})
 	}
 }
 
@@ -65,7 +97,7 @@ func TestFormatOCIError(t *testing.T) {
 	expectedPrefix := "Error: "
 	expectedSuffix := "OCI runtime output"
 	err := fmt.Errorf("%s: %w", expectedSuffix, define.ErrOCIRuntime)
-	output := formatError(err)
+	output := formatError(err, nil)
 
 	if !strings.HasPrefix(output, expectedPrefix) {
 		t.Errorf("Expected \"%s\" to start with \"%s\"", output, expectedPrefix)
