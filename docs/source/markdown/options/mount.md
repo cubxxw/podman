@@ -76,6 +76,11 @@ Options specific to type=**volume**:
 
 - *subpath*: Mount only a specific subpath within the volume, instead of the whole volume.
 
+- *relabel*: *shared*, *private*. Recursively walk the mount and set the security system (e.g. SELinux) label on each file to grant access permissions from the container context.
+  *shared* applies a label that grants permissions to all containers, while *private* applies a label that grants permissions to this specific container.
+
+- *z*, *Z*: shorthand for *relabel=shared* and *relabel=private*, respectively.
+
 - *idmap*: If specified, create an idmapped mount to the target user namespace in the container.
   The idmap option is only supported by Podman in rootful mode. The Linux kernel does not allow the use of idmapped file systems for unprivileged users.
   The idmap option supports a custom mapping that can be different from the user namespace used by the container.
@@ -98,7 +103,10 @@ Options specific to **bind** and **glob**:
 
 - *bind-nonrecursive*: do not set up a recursive bind mount. By default it is recursive.
 
-- *relabel*: *shared*, *private*.
+- *relabel*: *shared*, *private*. Recursively walk the mount and set the security system (e.g. SELinux) label on each file to grant access permissions from the container context.
+  *shared* applies a label that grants permissions to all containers, while *private* applies a label that grants permissions to this specific container.
+
+- *z*, *Z*: shorthand for *relabel=shared* and *relabel=private*, respectively.
 
 - *idmap*: If specified, create an idmapped mount to the target user namespace in the container.
   The idmap option is only supported by Podman in rootful mode. The Linux kernel does not allow the use of idmapped file systems for unprivileged users.
