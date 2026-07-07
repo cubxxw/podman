@@ -56,6 +56,11 @@ linters:
     - wastedassign
     - whitespace
   settings:
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+        - shadow
     forbidigo:
       forbid:
         # os.Is* error checking functions predate errors.Is. Therefore, they
