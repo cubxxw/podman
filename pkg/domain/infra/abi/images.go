@@ -567,9 +567,16 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 		reports[i].Name = searchResults[i].Name
 		reports[i].Description = searchResults[i].Description
 		reports[i].Stars = searchResults[i].Stars
-		reports[i].Official = searchResults[i].Official
-		reports[i].Automated = searchResults[i].Automated
 		reports[i].Tag = searchResults[i].Tag
+
+		// Use the bool methods to make sure
+		// we have a stable string representation.
+		if searchResults[i].IsOfficial() {
+			reports[i].Official = entities.ImageSearchTrue
+		}
+		if searchResults[i].IsAutomated() {
+			reports[i].Automated = entities.ImageSearchTrue
+		}
 	}
 
 	return reports, nil
