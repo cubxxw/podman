@@ -30,7 +30,7 @@ load helpers
 
 # bats test_tags=ci:parallel
 @test "podman rm - running container, w/o and w/ force" {
-    run_podman run -d $IMAGE sleep 5
+    run_podman run -d $IMAGE sleep 100
     cid="$output"
 
     # rm should fail
