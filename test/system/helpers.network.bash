@@ -298,8 +298,10 @@ function port_is_bound() {
 
     # Use ss to check the local ports
     run -0 ss -${proto:0:1}nlH state all sport = $port
-    # grep for exact address:port match or for "*:port" which means the port is bound to all addresses and hence bound for any address
-    grep -q "$address:$port" <<<"$output" || grep -q "*:$port" <<<"$output"
+    # grep for exact address:port match or for the bind all address "*", "0.0.0.0" or "[::]"
+    # which means the port is bound to all addresses and hence bound for any address. We could
+    # try to split v4 and v6 but that just makes it more complicated than it needs to be.
+    grep -q "$address:$port" <<<"$output" || grep -q -E "(\*|0\.0\.0\.0|\[::\]):$port" <<<"$output"
 }
 
 # port_is_free() - Check if TCP or UDP port is free to bind for a given address
