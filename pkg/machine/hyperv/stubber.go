@@ -206,6 +206,11 @@ func (h HyperVStubber) Exists(name string) (bool, error) {
 
 	vmm := hypervctl.NewVirtualMachineManager()
 	exists, _, err := vmm.GetMachineExists(name)
+	if errors.Is(err, hypervctl.ErrHyperVNamespaceMissing) {
+		// Hyper-V services are turned off,
+		// return `false`.
+		return false, nil
+	}
 	return exists, err
 }
 
