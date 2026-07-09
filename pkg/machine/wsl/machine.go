@@ -36,7 +36,11 @@ var (
 // TODO like provisionWSL, i think this needs to be pushed to use common
 // paths and types where possible
 func unprovisionWSL(mc *vmconfigs.MachineConfig) error {
-	dist := env.WithPodmanPrefix(mc.Name)
+	return unprovisionWSLByName(mc.Name)
+}
+
+func unprovisionWSLByName(name string) error {
+	dist := env.WithPodmanPrefix(name)
 	if err := terminateDist(dist); err != nil {
 		logrus.Error(err)
 	}
@@ -49,7 +53,7 @@ func unprovisionWSL(mc *vmconfigs.MachineConfig) error {
 		return err
 	}
 	distDir := filepath.Join(vmDataDir, "wsldist")
-	distTarget := filepath.Join(distDir, mc.Name)
+	distTarget := filepath.Join(distDir, name)
 	return utils.GuardedRemoveAll(distTarget)
 }
 
@@ -88,6 +92,15 @@ func provisionWSLDist(name string, imagePath string, prompt string) (string, err
 	if err != nil {
 		return "", fmt.Errorf("the WSL import of guest OS failed: %w", err)
 	}
+
+	// From now on, unregister the WSL distribution in case of error.
+	defer func() {
+		if err != nil {
+			if e := unprovisionWSLByName(name); e != nil {
+				logrus.Error(e)
+			}
+		}
+	}()
 
 	// Fixes newuidmap
 	if err = wslInvoke(dist, "rpm", "--restore", "shadow-utils"); err != nil {
