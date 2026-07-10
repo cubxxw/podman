@@ -1961,4 +1961,23 @@ spec:
     run_podman rmi $image
 }
 
+# bats test_tags=ci:parallel
+@test "podman inspect - Args does not duplicate Path for single command" {
+    cname=c_$(safename)
+
+    run_podman run --name $cname -d $IMAGE top -b
+    run_podman inspect $cname --format '{{.Path}}'
+    is "$output" "top" ".Path is the command"
+    run_podman inspect $cname --format '{{join .Args " "}}'
+    is "$output" "-b" ".Args holds only the arguments after the command"
+    run_podman rm -f $cname
+
+    run_podman run --name $cname -d $IMAGE top
+    run_podman inspect $cname --format '{{.Path}}'
+    is "$output" "top" ".Path is the command"
+    run_podman inspect $cname --format '{{len .Args}}'
+    is "$output" "0" ".Args should be empty when command has no arguments"
+    run_podman rm -f $cname
+}
+
 # vim: filetype=sh

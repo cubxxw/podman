@@ -500,7 +500,7 @@ var _ = Describe("Podman pod create", func() {
 		check2 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Path}}:{{.Args}}", data.Containers[0].ID})
 		check2.WaitWithDefaultTimeout()
 		Expect(check2).Should(ExitCleanly())
-		Expect(check2.OutputToString()).To(Equal("/pause1:[/pause1]"))
+		Expect(check2.OutputToString()).To(Equal("/pause1:[]"))
 	})
 
 	It("podman create pod with --infra-image", func() {
@@ -527,7 +527,7 @@ entrypoint ["/fromimage"]
 		check2 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Path}}:{{.Args}}", data.Containers[0].ID})
 		check2.WaitWithDefaultTimeout()
 		Expect(check2).Should(ExitCleanly())
-		Expect(check2.OutputToString()).To(Equal("/fromimage:[/fromimage]"))
+		Expect(check2.OutputToString()).To(Equal("/fromimage:[]"))
 	})
 
 	It("podman create pod with --infra-command --infra-image", func() {
@@ -554,7 +554,7 @@ entrypoint ["/fromimage"]
 		check2 := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Path}}:{{.Args}}", data.Containers[0].ID})
 		check2.WaitWithDefaultTimeout()
 		Expect(check2).Should(ExitCleanly())
-		Expect(check2.OutputToString()).To(Equal("/fromcommand:[/fromcommand]"))
+		Expect(check2.OutputToString()).To(Equal("/fromcommand:[]"))
 	})
 
 	It("podman pod status test", func() {
