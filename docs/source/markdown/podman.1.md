@@ -123,7 +123,8 @@ environment variable is set, the **--remote** option defaults to true.
 Storage root dir in which data, including images, is stored (default: "/var/lib/containers/storage" for UID 0, "$HOME/.local/share/containers/storage" for other users).
 Default root dir configured in `containers-storage.conf(5)`.
 
-Overriding this option causes the *storage-opt* settings in `containers-storage.conf(5)` to be ignored.  The user must specify additional options via the `--storage-opt` flag.
+This option causes the `storage.options.<driver>` settings in `containers-storage.conf(5)` and the `STORAGE_OPTS` environment variable to be ignored.
+The user must specify additional options via the `--storage-opt` flag.
 
 #### **--runroot**=*value*
 
@@ -156,12 +157,14 @@ to use the installed ssh binary and config file declared in containers.conf.
 
 Storage driver.  The default storage driver is configured in `containers-storage.conf(5)`. The `STORAGE_DRIVER` environment variable overrides the default. The --storage-driver specified driver overrides all.
 
-Overriding this option causes the *storage-opt* settings in `containers-storage.conf(5)` to be ignored.  The user must
-specify additional options via the `--storage-opt` flag.
+This option causes the `storage.options.<driver>` settings in `containers-storage.conf(5)` and the `STORAGE_OPTS` environment variable to be ignored.
+The user must specify additional options via the `--storage-opt` flag.
 
 #### **--storage-opt**=*value*
 
 Specify a storage driver option. Default storage driver options are configured in `containers-storage.conf(5)`. The `STORAGE_OPTS` environment variable overrides the default. The --storage-opt specified options override all. Specify --storage-opt="" so no storage options is used.
+
+The `--root` and `--storage-driver` options clear the default storage options, ignoring the default storage driver options from `containers-storage.conf(5)` and the `STORAGE_OPTS` environment variable.
 
 #### **--syslog**
 
@@ -285,7 +288,8 @@ Set default `--storage-driver` value.
 
 #### **STORAGE_OPTS**
 
-Set default `--storage-opt` value.
+Set default `--storage-opt` value. Overrides storage driver options in `containers-storage.conf(5)`.
+Ignored when the `--root` or `--storage-driver` options are set.
 
 #### **TMPDIR**
 
