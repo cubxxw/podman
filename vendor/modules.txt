@@ -35,7 +35,7 @@ github.com/acarl005/stripansi
 # github.com/aead/serpent v0.0.0-20160714141033-fba169763ea6
 ## explicit
 github.com/aead/serpent
-# github.com/aperturerobotics/protobuf-go-lite v0.14.0
+# github.com/aperturerobotics/protobuf-go-lite v0.15.0
 ## explicit; go 1.23
 github.com/aperturerobotics/protobuf-go-lite
 # github.com/blang/semver/v4 v4.0.0
@@ -47,7 +47,7 @@ github.com/cespare/xxhash/v2
 # github.com/checkpoint-restore/checkpointctl v1.5.0
 ## explicit; go 1.24.6
 github.com/checkpoint-restore/checkpointctl/lib
-# github.com/checkpoint-restore/go-criu/v8 v8.3.0
+# github.com/checkpoint-restore/go-criu/v8 v8.4.0
 ## explicit; go 1.25.0
 github.com/checkpoint-restore/go-criu/v8
 github.com/checkpoint-restore/go-criu/v8/internal/proto
@@ -96,7 +96,7 @@ github.com/containers/libtrust
 # github.com/containers/luksy v0.0.0-20251208191447-ca096313c38f
 ## explicit; go 1.24.0
 github.com/containers/luksy
-# github.com/containers/ocicrypt v1.3.1-0.20260527145308-c03ceaa8ff0d
+# github.com/containers/ocicrypt v1.3.1
 ## explicit; go 1.25.0
 github.com/containers/ocicrypt
 github.com/containers/ocicrypt/blockcipher
@@ -342,7 +342,7 @@ github.com/manifoldco/promptui/screenbuf
 # github.com/mattn/go-runewidth v0.0.24
 ## explicit; go 1.20
 github.com/mattn/go-runewidth
-# github.com/mattn/go-shellwords v1.0.13
+# github.com/mattn/go-shellwords v1.0.14
 ## explicit; go 1.13
 github.com/mattn/go-shellwords
 # github.com/mattn/go-sqlite3 v1.14.47
@@ -737,7 +737,7 @@ go.podman.io/buildah/pkg/sshagent
 go.podman.io/buildah/pkg/util
 go.podman.io/buildah/pkg/volumes
 go.podman.io/buildah/util
-# go.podman.io/common v0.68.1-0.20260707152203-d126613c6575
+# go.podman.io/common v0.68.2-0.20260710152621-629dae593a5b
 ## explicit; go 1.25.7
 go.podman.io/common/internal
 go.podman.io/common/libimage
@@ -803,7 +803,7 @@ go.podman.io/common/pkg/umask
 go.podman.io/common/pkg/util
 go.podman.io/common/pkg/version
 go.podman.io/common/version
-# go.podman.io/image/v5 v5.40.1-0.20260707152203-d126613c6575
+# go.podman.io/image/v5 v5.40.1-0.20260710152621-629dae593a5b
 ## explicit; go 1.25.7
 go.podman.io/image/v5/copy
 go.podman.io/image/v5/directory
@@ -880,7 +880,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.63.1-0.20260707152203-d126613c6575
+# go.podman.io/storage v1.63.1-0.20260710152621-629dae593a5b
 ## explicit; go 1.25.0
 go.podman.io/storage
 go.podman.io/storage/drivers
@@ -937,7 +937,7 @@ go.yaml.in/yaml/v2
 # go.yaml.in/yaml/v3 v3.0.4
 ## explicit; go 1.16
 go.yaml.in/yaml/v3
-# golang.org/x/crypto v0.53.0
+# golang.org/x/crypto v0.54.0
 ## explicit; go 1.25.0
 golang.org/x/crypto/argon2
 golang.org/x/crypto/blake2b
@@ -989,11 +989,11 @@ golang.org/x/net/trace
 ## explicit; go 1.25.0
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.21.0
+# golang.org/x/sync v0.22.0
 ## explicit; go 1.25.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.46.0
+# golang.org/x/sys v0.47.0
 ## explicit; go 1.25.0
 golang.org/x/sys/cpu
 golang.org/x/sys/plan9
@@ -1001,10 +1001,10 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
 golang.org/x/sys/windows/svc/eventlog
-# golang.org/x/term v0.44.0
+# golang.org/x/term v0.45.0
 ## explicit; go 1.25.0
 golang.org/x/term
-# golang.org/x/text v0.38.0
+# golang.org/x/text v0.40.0
 ## explicit; go 1.25.0
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
@@ -1026,7 +1026,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.45.0
+# golang.org/x/tools v0.47.0
 ## explicit; go 1.25.0
 golang.org/x/tools/cover
 golang.org/x/tools/go/ast/edge

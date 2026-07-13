@@ -9,10 +9,10 @@ require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/blang/semver/v4 v4.0.0
 	github.com/checkpoint-restore/checkpointctl v1.5.0
-	github.com/checkpoint-restore/go-criu/v8 v8.3.0
+	github.com/checkpoint-restore/go-criu/v8 v8.4.0
 	github.com/containers/gvisor-tap-vsock v0.8.9
 	github.com/containers/libhvee v0.11.0
-	github.com/containers/ocicrypt v1.3.1-0.20260527145308-c03ceaa8ff0d
+	github.com/containers/ocicrypt v1.3.1
 	github.com/containers/psgo v1.10.0
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.7.0
@@ -36,7 +36,7 @@ require (
 	github.com/kevinburke/ssh_config v1.5.0
 	github.com/klauspost/pgzip v1.2.6
 	github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422
-	github.com/mattn/go-shellwords v1.0.13
+	github.com/mattn/go-shellwords v1.0.14
 	github.com/mattn/go-sqlite3 v1.14.47
 	github.com/mdlayher/vsock v1.3.0
 	github.com/moby/docker-image-spec v1.3.1
@@ -65,14 +65,14 @@ require (
 	github.com/vishvananda/netlink v1.3.1
 	go.etcd.io/bbolt v1.5.0
 	go.podman.io/buildah v1.44.0
-	go.podman.io/common v0.68.1-0.20260707152203-d126613c6575
-	go.podman.io/image/v5 v5.40.1-0.20260707152203-d126613c6575
-	go.podman.io/storage v1.63.1-0.20260707152203-d126613c6575
-	golang.org/x/crypto v0.53.0
+	go.podman.io/common v0.68.2-0.20260710152621-629dae593a5b
+	go.podman.io/image/v5 v5.40.1-0.20260710152621-629dae593a5b
+	go.podman.io/storage v1.63.1-0.20260710152621-629dae593a5b
+	golang.org/x/crypto v0.54.0
 	golang.org/x/net v0.56.0
-	golang.org/x/sync v0.21.0
-	golang.org/x/sys v0.46.0
-	golang.org/x/term v0.44.0
+	golang.org/x/sync v0.22.0
+	golang.org/x/sys v0.47.0
+	golang.org/x/term v0.45.0
 	google.golang.org/grpc v1.82.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/inf.v0 v0.9.1
@@ -90,7 +90,7 @@ require (
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/aead/serpent v0.0.0-20160714141033-fba169763ea6 // indirect
-	github.com/aperturerobotics/protobuf-go-lite v0.14.0 // indirect
+	github.com/aperturerobotics/protobuf-go-lite v0.15.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
@@ -181,8 +181,8 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
-	golang.org/x/tools v0.45.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/tools v0.47.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
