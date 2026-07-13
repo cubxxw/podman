@@ -23,6 +23,7 @@ import (
 	"unicode"
 
 	"github.com/sirupsen/logrus"
+	"github.com/tonistiigi/dchapes-mode"
 	"go.podman.io/image/v5/pkg/compression"
 	"go.podman.io/image/v5/types"
 	"go.podman.io/storage/pkg/archive"
@@ -386,6 +387,7 @@ type GetOptions struct {
 	UIDMap, GIDMap     []idtools.IDMap   // map from hostIDs to containerIDs in the output archive
 	Excludes           []string          // contents to pretend don't exist, using the OS-specific path separator
 	ExpandArchives     bool              // extract the contents of named items that are archives
+	Chmod              string            // set permissions in octal or symbolic notation. overrides ChmodDirs and ChmodFiles if set. no effect on archives being extracted
 	ChownDirs          *idtools.IDPair   // set ownership on directories. no effect on archives being extracted
 	ChmodDirs          *os.FileMode      // set permissions on directories. no effect on archives being extracted
 	ChownFiles         *idtools.IDPair   // set ownership of files. no effect on archives being extracted
@@ -444,7 +446,8 @@ func Get(root string, directory string, options GetOptions, globs []string, bulk
 type PutOptions struct {
 	UIDMap, GIDMap       []idtools.IDMap   // map from containerIDs to hostIDs when writing contents to disk
 	DefaultDirOwner      *idtools.IDPair   // set ownership of implicitly-created directories, default is ChownDirs, or 0:0 if ChownDirs not set
-	DefaultDirMode       *os.FileMode      // set permissions on implicitly-created directories, default is ChmodDirs, or 0755 if ChmodDirs not set
+	DefaultDirMode       *os.FileMode      // set permissions on implicitly-created directories, default is Chmod or ChmodDirs, or 0755 if neither is set
+	Chmod                string            // set permissions in octal or symbolic notation. overrides ChmodDirs and ChmodFiles if set
 	ChownDirs            *idtools.IDPair   // set ownership of newly-created directories
 	ChmodDirs            *os.FileMode      // set permissions on newly-created directories
 	ChownFiles           *idtools.IDPair   // set ownership of newly-created files
@@ -458,6 +461,7 @@ type PutOptions struct {
 	NoOverwriteDirNonDir bool              // instead of quietly overwriting directories with non-directories, return an error
 	NoOverwriteNonDirDir bool              // instead of quietly overwriting non-directories with directories, return an error
 	Rename               map[string]string // rename items with the specified names, or under the specified names
+	Timestamp            *time.Time        // override timestamps on all extracted content
 }
 
 // Put extracts an archive from the bulkReader at the specified directory.
@@ -833,20 +837,16 @@ func copierWithSubprocess(bulkReader io.Reader, bulkWriter io.Writer, req reques
 	stdoutRead = nil
 	var wg sync.WaitGroup
 	var readError, writeError error
-	wg.Add(1)
-	go func() {
+	wg.Go(func() {
 		_, writeError = io.Copy(bulkWriter, bulkWriterRead)
 		bulkWriterRead.Close()
 		bulkWriterRead = nil
-		wg.Done()
-	}()
-	wg.Add(1)
-	go func() {
+	})
+	wg.Go(func() {
 		_, readError = io.Copy(bulkReaderWrite, bulkReader)
 		bulkReaderWrite.Close()
 		bulkReaderWrite = nil
-		wg.Done()
-	}()
+	})
 	wg.Wait()
 	cmdToWaitFor = nil
 	if err = cmd.Wait(); err != nil {
@@ -1355,8 +1355,6 @@ func checkLinks(item string, req request, info os.FileInfo) (string, os.FileInfo
 }
 
 func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMatcher, idMappings *idtools.IDMappings) (*response, func() error, error) {
-	statRequest := req
-	statRequest.Request = requestStat
 	statResponse := copierHandlerStat(req, pm, idMappings)
 	errorResponse := func(fmtspec string, args ...any) (*response, func() error, error) {
 		return &response{Error: fmt.Sprintf(fmtspec, args...), Stat: statResponse.Stat, Get: getResponse{}}, nil, nil
@@ -1407,6 +1405,14 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 	topInfo, err := os.Stat(req.Directory)
 	if err != nil {
 		return errorResponse("copier: get: error reading info about directory %q: %v", req.Directory, err)
+	}
+	var chmod *mode.Set
+	if req.GetOptions.Chmod != "" {
+		p, err := mode.Parse(req.GetOptions.Chmod)
+		if err != nil {
+			return errorResponse("copier: get: parsing chmod %q: %v", req.GetOptions.Chmod, err)
+		}
+		chmod = &p
 	}
 	cb := func() error {
 		tw := tar.NewWriter(bulkWriter)
@@ -1461,7 +1467,7 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 					return fmt.Errorf("copier: get: %w", err)
 				}
 
-				if err := copierHandlerGetOne(parentInfo, parentSymlinkTarget, parentName, parent, req.GetOptions, tw, hardlinkChecker, idMappings); err != nil {
+				if err := copierHandlerGetOne(parentInfo, parentSymlinkTarget, parentName, parent, req.GetOptions, tw, hardlinkChecker, idMappings, chmod); err != nil {
 					if req.GetOptions.IgnoreUnreadable && errorIsPermission(err) {
 						continue
 					} else if errors.Is(err, os.ErrNotExist) {
@@ -1584,7 +1590,7 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 						}
 					}
 					// add the item to the outgoing tar stream
-					if err := copierHandlerGetOne(info, symlinkTarget, rel, path, options, tw, hardlinkChecker, idMappings); err != nil {
+					if err := copierHandlerGetOne(info, symlinkTarget, rel, path, options, tw, hardlinkChecker, idMappings, chmod); err != nil {
 						if req.GetOptions.IgnoreUnreadable && errorIsPermission(err) {
 							return ok
 						} else if errors.Is(err, os.ErrNotExist) {
@@ -1626,7 +1632,7 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 					return fmt.Errorf("copier: get: %w", err)
 				}
 
-				if err := copierHandlerGetOne(info, symlinkTarget, name, item, req.GetOptions, tw, hardlinkChecker, idMappings); err != nil {
+				if err := copierHandlerGetOne(info, symlinkTarget, name, item, req.GetOptions, tw, hardlinkChecker, idMappings, chmod); err != nil {
 					if req.GetOptions.IgnoreUnreadable && errorIsPermission(err) {
 						continue
 					}
@@ -1697,7 +1703,7 @@ func getTargetIfSymlink(path string, info os.FileInfo) (string, error) {
 	return "", nil
 }
 
-func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath string, options GetOptions, tw *tar.Writer, hardlinkChecker *hardlinkChecker, idMappings *idtools.IDMappings) error {
+func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath string, options GetOptions, tw *tar.Writer, hardlinkChecker *hardlinkChecker, idMappings *idtools.IDMappings, chmod *mode.Set) error {
 	// build the header using the name provided
 	hdr, err := tar.FileInfoHeader(srcfi, symlinkTarget)
 	if err != nil {
@@ -1807,11 +1813,14 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 		}
 	}
 	// force ownership and/or permissions, if requested
+	if chmod != nil {
+		hdr.Mode = int64(chmod.Apply(srcfi.Mode()))
+	}
 	if hdr.Typeflag == tar.TypeDir {
 		if options.ChownDirs != nil {
 			hdr.Uid, hdr.Gid = options.ChownDirs.UID, options.ChownDirs.GID
 		}
-		if options.ChmodDirs != nil {
+		if options.ChmodDirs != nil && chmod == nil {
 			hdr.Mode = int64(*options.ChmodDirs)
 		}
 		if !strings.HasSuffix(hdr.Name, "/") {
@@ -1821,7 +1830,7 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 		if options.ChownFiles != nil {
 			hdr.Uid, hdr.Gid = options.ChownFiles.UID, options.ChownFiles.GID
 		}
-		if options.ChmodFiles != nil {
+		if options.ChmodFiles != nil && chmod == nil {
 			hdr.Mode = int64(*options.ChmodFiles)
 		}
 	}
@@ -1887,6 +1896,15 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 	if req.PutOptions.ChmodDirs != nil {
 		defaultDirMode = *req.PutOptions.ChmodDirs
 	}
+	var chmod *mode.Set
+	if req.PutOptions.Chmod != "" {
+		p, err := mode.Parse(req.PutOptions.Chmod)
+		if err != nil {
+			return errorResponse("parsing chmod %q: %v", req.PutOptions.Chmod, err)
+		}
+		chmod = &p
+		defaultDirMode = chmod.Apply(defaultDirMode)
+	}
 	if req.PutOptions.DefaultDirOwner != nil {
 		defaultDirUID, defaultDirGID = req.PutOptions.DefaultDirOwner.UID, req.PutOptions.DefaultDirOwner.GID
 	}
@@ -1915,6 +1933,14 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 		}
 	}
 	directoryModes := make(map[string]os.FileMode)
+	type directoryTimestamp struct {
+		directory    string
+		atime, mtime time.Time
+	}
+	// track directory timestamps so we can restore them after extraction
+	// because creating entries under a directory updates its mtime.
+	var directoryTimestamps []directoryTimestamp
+	timestamp := req.PutOptions.Timestamp
 	ensureDirectoryUnderRoot := func(directory string) error {
 		rel, err := convertToRelSubdirectory(req.Root, directory)
 		if err != nil {
@@ -1932,6 +1958,13 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				// later, but not if we already had an explicitly-provided mode
 				if _, ok := directoryModes[path]; !ok {
 					directoryModes[path] = defaultDirMode
+				}
+				if timestamp != nil {
+					directoryTimestamps = append(directoryTimestamps, directoryTimestamp{
+						directory: path,
+						atime:     timestamp.UTC(),
+						mtime:     timestamp.UTC(),
+					})
 				}
 			} else {
 				// FreeBSD can return EISDIR for "mkdir /":
@@ -2012,16 +2045,11 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 		}
 	}
 	cb := func() error {
-		type directoryAndTimes struct {
-			directory    string
-			atime, mtime time.Time
-		}
-		var directoriesAndTimes []directoryAndTimes
 		defer func() {
-			for i := range directoriesAndTimes {
-				directoryAndTimes := directoriesAndTimes[len(directoriesAndTimes)-i-1]
-				if err := lutimes(false, directoryAndTimes.directory, directoryAndTimes.atime, directoryAndTimes.mtime); err != nil {
-					logrus.Debugf("error setting access and modify timestamps on %q to %s and %s: %v", directoryAndTimes.directory, directoryAndTimes.atime, directoryAndTimes.mtime, err)
+			for i := range directoryTimestamps {
+				timestamps := directoryTimestamps[len(directoryTimestamps)-i-1]
+				if err := lutimes(false, timestamps.directory, timestamps.atime, timestamps.mtime); err != nil {
+					logrus.Debugf("error setting access and modify timestamps on %q to %s and %s: %v", timestamps.directory, timestamps.atime, timestamps.mtime, err)
 				}
 			}
 			for directory, mode := range directoryModes {
@@ -2078,13 +2106,17 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			if req.PutOptions.StripStickyBit && hdr.Mode&cISVTX == cISVTX {
 				hdr.Mode &^= cISVTX
 			}
-			if hdr.Typeflag == tar.TypeDir {
-				if req.PutOptions.ChmodDirs != nil {
-					hdr.Mode = int64(*req.PutOptions.ChmodDirs)
-				}
+			if chmod != nil {
+				hdr.Mode = int64(chmod.Apply(os.FileMode(hdr.Mode)))
 			} else {
-				if req.PutOptions.ChmodFiles != nil {
-					hdr.Mode = int64(*req.PutOptions.ChmodFiles)
+				if hdr.Typeflag == tar.TypeDir {
+					if req.PutOptions.ChmodDirs != nil {
+						hdr.Mode = int64(*req.PutOptions.ChmodDirs)
+					}
+				} else {
+					if req.PutOptions.ChmodFiles != nil {
+						hdr.Mode = int64(*req.PutOptions.ChmodFiles)
+					}
 				}
 			}
 			// create the new item
@@ -2188,15 +2220,12 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 					// either we removed it and retried, or it was a directory,
 					// in which case we want to just add the new stuff under it
 				}
-				// make a note of the directory's times.  we
-				// might create items under it, which will
-				// cause the mtime to change after we correct
-				// it, so we'll need to correct it again later
-				directoriesAndTimes = append(directoriesAndTimes, directoryAndTimes{
-					directory: path,
-					atime:     hdr.AccessTime,
-					mtime:     hdr.ModTime,
-				})
+				dt := directoryTimestamp{directory: path, atime: hdr.AccessTime, mtime: hdr.ModTime}
+				if timestamp != nil {
+					dt.atime = timestamp.UTC()
+					dt.mtime = dt.atime
+				}
+				directoryTimestamps = append(directoryTimestamps, dt)
 				// set the mode here unconditionally, in case the directory is in
 				// the archive more than once for whatever reason
 				directoryModes[path] = mode
@@ -2267,7 +2296,10 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 				}
 			}
 			// set time
-			if hdr.AccessTime.IsZero() || hdr.AccessTime.Before(hdr.ModTime) {
+			if timestamp != nil {
+				hdr.AccessTime = timestamp.UTC()
+				hdr.ModTime = hdr.AccessTime
+			} else if hdr.AccessTime.IsZero() || hdr.AccessTime.Before(hdr.ModTime) {
 				hdr.AccessTime = hdr.ModTime
 			}
 			if err = lutimes(hdr.Typeflag == tar.TypeSymlink, path, hdr.AccessTime, hdr.ModTime); err != nil {
