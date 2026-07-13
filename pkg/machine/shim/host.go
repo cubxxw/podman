@@ -288,9 +288,19 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	if err != nil {
 		return err
 	}
+	rmVM := func() error {
+		if err == nil {
+			return nil
+		}
+		if _, rm, _ := mp.Remove(mc); rm != nil {
+			return rm()
+		}
+		return nil
+	}
+	callbackFuncs.Add(rmVM)
 
 	// TODO AddSSHConnectionToPodmanSocket could take an machineconfig instead
-	if err := connection.AddSSHConnectionsToPodmanSocket(mc.HostUser.UID, mc.SSH.Port, mc.SSH.IdentityPath, mc.Name, mc.SSH.RemoteUsername, opts); err != nil {
+	if err = connection.AddSSHConnectionsToPodmanSocket(mc.HostUser.UID, mc.SSH.Port, mc.SSH.IdentityPath, mc.Name, mc.SSH.RemoteUsername, opts); err != nil {
 		return err
 	}
 
