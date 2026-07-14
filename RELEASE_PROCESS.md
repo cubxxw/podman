@@ -12,7 +12,7 @@ development efforts occur on the *main* branch.  Branches with a
 
 ## Release workflow expectations
 
-* You have push access to the [upstream podman repository](https://github.com/containers/podman.git), and the upstream [podman-machine-os repository](https://github.com/containers/podman-machine-os)
+* You have push access to the [upstream podman repository](https://github.com/podman-container-tools/podman.git), and the upstream [podman-machine-os repository](https://github.com/podman-container-tools/podman-machine-os)
 * You understand all basic `git` operations and concepts, like creating commits,
   local vs. remote branches, rebasing, and conflict resolution.
 * You have access to your public and private *GPG* keys. They should also be documented on our [release keys repo](https://github.com/containers/release-keys).
@@ -81,31 +81,14 @@ spelled with complete minutiae.
       If so, repeat above steps for `podman-machine-os`.
    1. Back on the podman repo, automation will begin executing on the branch immediately.
       Because the repository allows out-of-sequence PR merging, it is possible that
-      merge order introduced bugs/defects.  To establish a clean
-      baseline, observe the initial CI run on the branch for any unexpected
-      failures.  This can be done by going directly to
-      `https://cirrus-ci.com/github/containers/podman/vX.Y`
+      merge order introduced bugs/defects. To establish a clean baseline, observe
+      the initial GitHub Actions CI run on the branch for any unexpected failures.
+      The runs can be monitored from the repository's
+      [Actions page](https://github.com/podman-container-tools/podman/actions).
    1. If there are CI test or automation boops that need fixing on the branch,
       attend to them using normal PR process (to *main* first, then backport
-      changes to the new branch).  Ideally, CI should be "green" on the new
+      changes to the new branch). Ideally, CI should be "green" on the new
       branch before proceeding.
-
-   1. Create a new branch-verification Cirrus-Cron entry.
-
-      1. This is to ensure CI's VM image timestamps are refreshed.  Without this,
-         the VM images ***will*** be permanently pruned after 60 days of inactivity
-         and are hard/impossible to re-create accurately.
-      1. Go to
-         [https://cirrus-ci.com/github/containers/podman](https://cirrus-ci.com/github/containers/podman)
-         and press the "gear" (Repository Settings) button on the top-right.
-      1. At the bottom of the settings page is a table of cron-job names, branches,
-         schedule, and recent status.  Below that is an editable new-entry line.
-      1. Set the new job's `name` and `branch` to the name of new release branch.
-      1. Set the `expression` using the form `X X X ? * 1-6` where 'X' is a number
-         between 0-23 and not already taken by another job in the table.  The 1-hour
-         interval is used because it takes about that long for the job to run.
-      1. Add the new job by pressing the `+` button on the right-side of the
-         new-entry line.
 
 
 1. Create a new local working-branch to develop the release PR
@@ -160,24 +143,25 @@ spelled with complete minutiae.
       should be `Bump to vX.Y.Z` (using the actual version numbers).
    1. Push this single change to your GitHub fork, and make a new PR,
       **being careful** to select the proper release branch as its base.
-   1. Wait for all automated tests pass (including on an RC-branch PR).  Re-running
+   1. Wait for all automated tests to pass (including on an RC-branch PR).  Re-running
       and/or updating code as needed.
-   1. In the PR, under the *Checks* tab, locate and clock on the Cirrus-CI
-      task `Optional Release Test`.  In the right-hand window pane, click
-      the `trigger` button and wait for the test to go green.  *This is a
-      critical step* which confirms the commit is worthy of becoming a release.
-   1. In the PR, under the *Checks* tab, a GitHub actions [task](https://github.com/containers/podman/actions/workflows/machine-os-pr.yml) will run.
-      This action opens a PR on the [podman-machine-os repo](https://github.com/containers/podman-machine-os), which builds VM images for the release. The action will also link the `podman-machine-os` pr in a comment on the podman PR
-      This action also automatically applies the `do-not-merge/wait-machine-image-build` to the Podman PR, which blocks merging until VM images are built and published.
-   1. Go to the `podman-machine-os` bump pr, by clicking the link in the comment, or by finding it in the [podman-machine-os repo](https://github.com/containers/podman-machine-os/pulls).
+   1. In the PR, under the *Checks* tab, a GitHub Actions [workflow](https://github.com/podman-container-tools/podman/actions/workflows/machine-os-pr.yml) will run.
+      This workflow opens a PR on the [podman-machine-os repo](https://github.com/podman-container-tools/podman-machine-os)
+      to build VM images for the release, links that PR in a comment on the Podman PR,
+      and applies the `do-not-merge/wait-machine-os-build` label until the images are built
+      and published.
+   1. Go to the `podman-machine-os` bump PR, by clicking the link in the comment, or by finding it in the [podman-machine-os repo](https://github.com/podman-container-tools/podman-machine-os/pulls).
       1. Wait for automation to finish running
       1. Once you are sure that there will be no more force pushes on the Podman release PR, merge the `podman-machine-os` bump PR
       1. Tag the `podman-machine-os` bump commit with the same version as the podman release. (git tag -s -m 'vX.Y.Z' vX.Y.Z)
       1. Push the tag.
-      1. The tag will automatically trigger a Cirrus task, named “Publish Image”,
-         to publish the release images. It will push the images to Quay and cut a release on the `podman-machine-os` repo. Wait for this task to complete. You can monitor the task on the [Cirrus CI dashboard](https://cirrus-ci.com/github/containers/podman-machine-os)
+      1. The tag will automatically trigger the
+         [`release`](https://github.com/podman-container-tools/podman-machine-os/actions/workflows/release.yml)
+         GitHub Actions workflow. It publishes the images to Quay and creates a
+         GitHub release in the `podman-machine-os` repository. Wait for this
+         workflow to complete successfully.
    1. Return to the Podman repo
-   1. The `do-not-merge/wait-podman-machine-os` label should be automatically
+   1. The `do-not-merge/wait-machine-os-build` label should be automatically
       un-set once the `podman-machine-os` release is finished.
    1. Wait for all other PR checks to pass.
    1. Wait for other maintainers to merge the PR.
@@ -211,47 +195,15 @@ spelled with complete minutiae.
    1. After the tag is pushed, an action to bump to -dev will run. A PR will be opened for this bump. Merge this PR if needed.
 
 
-1. Locate, Verify release testing is proceeding
+1. Verify release testing is proceeding
 
-   1. When the tag was pushed, an automated build was created. Locate this
-      by starting from
-      `https://github.com/containers/podman/tags` and finding the recent entry
-      for the pushed tag.  Under the tag name will be a timestamp and abbreviated
-      commit hash, for example `<> 5b2585f`.  Click the commit-hash link.
-   1. In the upper-left most corner, just to the left of the "Bump to vX.Y"
-      text, will be a small status icon (Yellow circle, Red "X", or green check).
-      Click this, to open a small pop-up/overlay window listing all the status
-      checks.
-   1. In the small pop-up/overlay window, press the "Details" link on one of the
-      Cirrus-CI status check entries (doesn't matter which one).
-   1. On the following page, in the lower-right pane, will be a "View more details
-      on Cirrus CI" link, click this.
-   1. A Cirrus-CI task details page will open, click the button labeled
-      "View All Tasks".
-   1. Keep this page open to monitor its progress and for use in future steps.
-
-1. Update Cirrus-CI cron job list
-   1. After any Major or significant minor (esp. `-rhel`) releases, it's critical to
-      maintain the Cirrus-CI cron job list.  This applies to all containers-org repos,
-      not just podman.
-   1. Access the repo. settings WebUI by navigating to
-      `https://cirrus-ci.com/github/containers/<repo name>`
-      and clicking the gear-icon in the upper-right.
-   1. For minor (i.e. **NOT** `-rhel`) releases, (e.x. `vX.Y`), the previous release
-      should be removed from rotation (e.x. `vX.<Y-1>`) assuming it's no longer supported.
-      Simply click the trash-can icon to the right of the job definition.
-   1. For `-rhel` releases, these are tied to products with specific EOL dates.  They should
-      *never* be disabled unless you (and a buddy) are *absolutely* certain the product is EOL
-      and will *never* ever see another backport (CVE or otherwise).
-   1. On the settings page, pick a "less used" time-slot based on the currently defined
-      jobs.  For example, if three jobs specify `12 12 12 ? * 1-6`, choose another.  Any
-      spec. `H`/`M`/`S` value between 12 and 22 is acceptable (e.x. `22 22 22 ? * 1-6`).
-      The point is to not overload the clouds with CI jobs.
-   1. Following the pattern of the already defined jobs, at the bottom of the settings
-      page add a new entry.  The "Name" should reflect the version number, the "Branch"
-      is simply the newly created release branch name (must be exact), and the "Expression"
-      is the time slot you selected (copy-paste).
-   1. Click the "+" button next to the new-job row you just filled out.
+   1. After the tag is pushed, open the
+      [GitHub Actions page](https://github.com/podman-container-tools/podman/actions)
+      and locate the workflow runs associated with the new tag.
+   1. Monitor the `Release` workflow and ensure that all required jobs
+      complete successfully.
+   1. Keep the relevant workflow run open for monitoring during the remaining
+      release steps.
 
 1. Announce the release
       1. For major and minor releases, write a blog post and publish it to blogs.podman.io
