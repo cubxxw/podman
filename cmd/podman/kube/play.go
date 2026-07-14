@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -299,14 +300,17 @@ func play(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Create a channel to catch an interrupt or SIGTERM signal
-	ch := make(chan os.Signal, 1)
+	var ch chan os.Signal
+	wg := &sync.WaitGroup{}
 	var teardownReader *bytes.Reader
+	var teardownErr error
 	if playOptions.Wait {
 		// Stop the shutdown signal handler so we can actually clean up after a SIGTERM or interrupt
 		if err := shutdown.Stop(); err != nil && err != shutdown.ErrNotStarted {
 			return err
 		}
+		// Create a channel to catch an interrupt or SIGTERM signal
+		ch = make(chan os.Signal, 1)
 		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 		playOptions.ServiceContainer = true
 
@@ -316,21 +320,16 @@ func play(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		fmt.Println("Use ctrl+c to clean up or wait for pods to exit")
-	}
 
-	var teardownErr error
-	cancelled := false
-	if playOptions.Wait {
 		// use a goroutine to wait for a sigterm or interrupt
-		go func() {
+		wg.Go(func() {
 			<-ch
 			// clean up any volumes that were created as well
 			fmt.Println("\nCleaning up containers, pods, and volumes...")
-			cancelled = true
 			if err := teardown(teardownReader, entities.PlayKubeDownOptions{Force: true}); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
 				teardownErr = fmt.Errorf("error during cleanup: %v", err)
 			}
-		}()
+		})
 	}
 
 	if playErr := kubeplay(reader); playErr != nil {
@@ -349,16 +348,18 @@ func play(cmd *cobra.Command, args []string) error {
 		// }
 		return playErr
 	}
-	if teardownErr != nil {
-		return teardownErr
-	}
 
 	// cleanup if --wait=true and the pods have exited
-	if playOptions.Wait && !cancelled {
-		fmt.Println("Cleaning up containers, pods, and volumes...")
-		// clean up any volumes that were created as well
-		if err := teardown(teardownReader, entities.PlayKubeDownOptions{Force: true}); err != nil && !errorhandling.Contains(err, define.ErrNoSuchPod) {
-			return err
+	if playOptions.Wait {
+		// Stop the signal handler
+		signal.Stop(ch)
+		// close the channel, this will make the goroutine channel unlock and run
+		// teardown() there which populates teardownErr
+		close(ch)
+		// Wait for any code in the signal handler to complete first.
+		wg.Wait()
+		if teardownErr != nil {
+			return teardownErr
 		}
 	}
 
