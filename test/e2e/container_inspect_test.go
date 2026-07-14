@@ -107,6 +107,19 @@ var _ = Describe("Podman container inspect", func() {
 		Expect(data[0].Config.Annotations[define.VolumesFromAnnotation]).To(Equal(volsctr))
 	})
 
+	// https://github.com/containers/podman/issues/29164
+	It("podman inspect supports docker-compatible HostIp in format template", func() {
+		ctrName := "hostip-compat"
+		session := podmanTest.Podman([]string{"create", "--name", ctrName, "-p", "127.0.0.1::8080/tcp", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		inspect := podmanTest.Podman([]string{"inspect", "--format", `{{ (index (index .NetworkSettings.Ports "8080/tcp") 0).HostIp }}`, ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(Equal("127.0.0.1"))
+	})
+
 	It("podman inspect hides secrets mounted to env", func() {
 		secretName := "mysecret"
 
