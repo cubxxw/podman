@@ -70,7 +70,7 @@ func Logf(format string, a ...any) {
 	s := fmt.Sprintf(format, a...)
 	line := fmt.Sprintf("quadlet-generator[%d]: %s", os.Getpid(), s)
 
-	logToKmsg(line)
+	_ = logToKmsg(line)
 
 	fmt.Fprintf(os.Stderr, "%s\n", line)
 	os.Stderr.Sync()
