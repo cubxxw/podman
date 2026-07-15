@@ -57,12 +57,12 @@ jobs:
         id: generate-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          # N/B: These are both defined at the containers-org level
-          app-id: ${{ vars.STALE_LOCKING_APP_ID }}
+          # N/B: These are both defined at the podman-container-tools org level
+          client-id: ${{ vars.STALE_LOCKING_CLIENT_ID }}
           private-key: ${{ secrets.STALE_LOCKING_APP_PRIVATE_KEY }}
 
       # Ref: https://github.com/dessant/lock-threads#usage
-      - uses: dessant/lock-threads@7266a7ce5c1df01b1c6db85bf8cd86c737dadbe7 # v6.0.0
+      - uses: dessant/lock-threads@89ae32b08ed1a541efecbab17912962a5e38981c # v6.0.2
         with:
           github-token: '${{ steps.generate-token.outputs.token }}'
           process-only: 'issues, prs'
