@@ -128,7 +128,6 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	// - in: query
 	//   name: images
 	//   type: string
-	//   required: true
 	//   description: |
 	//     One or more names of an image or a manifest list. Repeat parameter as needed.
 	//
