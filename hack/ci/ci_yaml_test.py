@@ -43,5 +43,14 @@ class TestCase(unittest.TestCase):
                     if 'uses:' in line:
                         self.assertRegex(line, pattern, msg=f"Action must be pinned with a version number comment, file: .github/workflows/{name}:{i}")
 
+    def test_job_timeout(self):
+        """ensure all the ci jobs have a timeout set"""
+        for job, item in self.CI_YAML['jobs'].items():
+            # Note some jobs just start another workflow via uses, in this case no runs-on is set and no timeout can be set so skip it.
+            if item.get('runs-on') is not None:
+                timeout = item.get('timeout-minutes')
+                self.assertIsNotNone(timeout, msg=f"job '{job}' has no timeout-minutes set")
+                self.assertLessEqual(timeout, 60, msg=f"job '{job}' should never take longer than 1 hour")
+
 if __name__ == "__main__":
     unittest.main()
