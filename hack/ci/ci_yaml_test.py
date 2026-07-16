@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 
 """
-Verify contents of .github/workflows/ci.yml meet specific expectations
+Verify contents of .github/workflows/ci.yml meets some basic expectations
 """
 
 import sys
 import os
 import unittest
 import yaml
+import re
 
 # Assumes directory structure of this file relative to repo.
 SCRIPT_DIRPATH = os.path.dirname(os.path.realpath(__file__))
-REPO_ROOT = os.path.realpath(os.path.join(SCRIPT_DIRPATH, '../', '../'))
+REPO_ROOT = os.path.realpath(os.path.join(SCRIPT_DIRPATH, '..', '..'))
 
 
-class TestCaseBase(unittest.TestCase):
+class TestCase(unittest.TestCase):
 
     CI_YAML = None
 
@@ -22,21 +23,25 @@ class TestCaseBase(unittest.TestCase):
         with open(os.path.join(REPO_ROOT, '.github/workflows/ci.yml')) as ci_yaml:
             self.CI_YAML = yaml.safe_load(ci_yaml.read())
 
-
-class TestDependsOn(TestCaseBase):
-
-    ALL_TASK_NAMES = None
-
-    def setUp(self):
-        super().setUp()
-        self.ALL_TASK_NAMES = list(self.CI_YAML['jobs'].keys())
-
-
+    # Critical for the merge protection to work as we only block on this task.
     def test_success_deps(self):
-        """Specific success task depends on all others"""
-        all_tasks = self.ALL_TASK_NAMES.remove('success')
+        """success task depends on all others"""
+        all_tasks = list(self.CI_YAML['jobs'].keys())
+        # need to remove success from the list as it cannot depend on itself
+        all_tasks.remove('success')
         needs = self.CI_YAML['jobs']['success']['needs']
-        self.assertCountEqual(needs, self.ALL_TASK_NAMES)
+        self.assertCountEqual(needs, all_tasks)
+
+    def test_gh_actions_are_pinned_by(self):
+        """ensure all actions are pinned by digest and have version comment"""
+        # Note local paths are allowed, i.e. uses: ./.github/workflows/lima.yml
+        pattern = re.compile(r"uses:\s+(?:(\./[\w./-]+)(?:\s+#.*)?|([\w.-]+/[\w./-]+)@([a-f0-9]{40})\s+#\s*(.+))$")
+        dir = os.path.join(REPO_ROOT, '.github/workflows')
+        for name in os.listdir(dir):
+            with open(os.path.join(dir, name)) as file:
+                for i, line in enumerate(file, 1):
+                    if 'uses:' in line:
+                        self.assertRegex(line, pattern, msg=f"Action must be pinned with a version number comment, file: .github/workflows/{name}:{i}")
 
 if __name__ == "__main__":
     unittest.main()
