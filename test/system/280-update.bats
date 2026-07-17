@@ -366,11 +366,17 @@ function nrand() {
     assert "$output" =~ "nofile: 1024" "nofile ulimit updated to 1024 in main process"
 
     # Update with multiple ulimits
-    run_podman update --ulimit nofile=2048:2048 --ulimit nproc=512:512 $ctrname
+    # nproc is set high (10000) on purpose, not just "safely above default".
+    # RLIMIT_NPROC is enforced per user *namespace*, not per container, so a
+    # low value here can flake: on remote, conmon processes for exec
+    # sessions are leaked and sleep for ~300s, adding to the process count
+    # in the shared rootless user namespace. Do not lower this without
+    # reading https://github.com/containers/podman/issues/28940
+    run_podman update --ulimit nofile=2048:2048 --ulimit nproc=10000:10000 $ctrname
     run_podman restart $ctrname
     run_podman logs $ctrname
     assert "$output" =~ "nofile: 2048" "nofile ulimit updated to 2048 in main process"
-    assert "$output" =~ "nproc: 512" "nproc ulimit updated to 512 in main process"
+    assert "$output" =~ "nproc: 10000" "nproc ulimit updated to 10000 in main process"
 
     # Capture host values by running a temporary container with --ulimit host option
     run_podman run --rm --ulimit host $IMAGE sh -c "echo 'nofile:' \$(ulimit -n); echo 'nproc:' \$(ulimit -u)"
