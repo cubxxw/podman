@@ -402,7 +402,7 @@ var _ = Describe("podman machine start", func() {
 		Expect(inspectSession.outputToString()).To(Equal(define.Stopped))
 
 		// Verify no orphan gvproxy
-		_, err = pgrep("gvproxy")
+		_, err = pgrep(gvproxy)
 		Expect(err).To(HaveOccurred(), "gvproxy should not be running after SIGTERM cleanup")
 
 		// Restart without interrupting and confirm that completes without error

@@ -636,6 +636,17 @@ jobs:
           New-Item -ItemType Directory -Force -Path "$env:AppData\containers" | Out-Null
           Copy-Item -Path pkg\machine\ocipull\policy.json -Destination "$env:AppData\containers"
 
+      # The test "Podman ops with port forwarding and gvproxy" starts a local HTTP server
+      # to verify that a client inside a container can send a request to the host. A connection
+      # from WSL appears like a remote connection and we need a NetFirewallRule to allow it.
+      - name: Firewall Rule
+        if: matrix.provider == 'wsl'
+        env:
+          TARGET_PORT: '62545' # Must match the value in "Podman ops with port forwarding and gvproxy".
+        shell: pwsh
+        run: |
+          New-NetFirewallRule -DisplayName "Allow connections from WSL to local HTTP Server (port $env:TARGET_PORT)" -Direction Inbound -Protocol TCP -LocalPort "$env:TARGET_PORT" -RemoteAddress LocalSubnet -Action Allow
+
       - name: Run machine e2e
         shell: pwsh
         run: .\winmake.ps1 localmachine
