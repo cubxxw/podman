@@ -107,6 +107,7 @@ and other data will be preserved." />
 		<Feature Id="Complete" Level="1">
 			<ComponentRef Id="INSTALLDIR_Component" />
 			<ComponentRef Id="EnvEntriesComponent" />
+			<ComponentRef Id="EnvEntriesComponentPerMachine" />
 			<ComponentRef Id="MainExecutable" />
 			<ComponentRef Id="WinSshProxyExecutable" />
 			<?if $(var.UseGVProxy) != Skip?>
@@ -171,9 +172,15 @@ and other data will be preserved." />
 			</Component>
 		</Directory>
 		<Directory Id="EnvEntries">
-			<Component Id="EnvEntriesComponent" Guid="b662ec43-0e0e-4018-8bf3-061904bb8f5b" Bitness="always64">
+			<Component Id="EnvEntriesComponent" Guid="b662ec43-0e0e-4018-8bf3-061904bb8f5b" Bitness="always64"
+				Condition="MSIINSTALLPERUSER=1" >
 				<CreateFolder />
-				<Environment Id="UpdatePath" Name="PATH" Action="set" Permanent="no" Part="last" Value="[INSTALLDIR]" />
+				<Environment Id="UpdatePath" Name="PATH" Action="set" Permanent="no" Part="last" Value="[INSTALLDIR]" System="false"/>
+			</Component>
+			<Component Id="EnvEntriesComponentPerMachine" Guid="b0fc674f-1b96-45d4-82a6-cf7d860afb72" Bitness="always64"
+				Condition="ALLUSERS=1 AND NOT MSIINSTALLPERUSER=1" >
+				<CreateFolder />
+				<Environment Id="UpdatePathPerMachine" Name="PATH" Action="set" Permanent="no" Part="last" Value="[INSTALLDIR]" System="true"/>
 			</Component>
 		</Directory>
   </Package>

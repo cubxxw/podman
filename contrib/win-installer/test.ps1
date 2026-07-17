@@ -389,6 +389,62 @@ function Test-Podman-Machine-Conf-Content {
     Write-Host "Verification was successful!`n"
 }
 
+function Test-Path-In-Environment-Reg-Key {
+    param (
+        [ValidateSet('machine-legacy', 'machine', 'user')]
+        [string]$scope = $script:scope,
+        [switch]$expectIsMissing = $false
+    )
+    if ($scope -eq 'machine') {
+        $PodmanFolderPath = $PodmanFolderPathPerMachine
+        $EnvironmentPathRegistryKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+    }
+    elseif ($scope -eq 'machine-legacy') {
+        $PodmanFolderPath = $PodmanFolderPathPerMachineLegacy
+        $EnvironmentPathRegistryKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+    }
+    else {
+        $PodmanFolderPath = $PodmanFolderPathPerUser
+        $EnvironmentPathRegistryKey = "HKCU:\Environment"
+    }
+    $EnvironmentPathRegistryKeyValue = "Path"
+    Write-Host "Verifying if Podman is in PATH...(scope=$scope, expectIsMissing=$expectIsMissing)"
+    if (! (Test-Path -Path $EnvironmentPathRegistryKey) ) {
+        throw "Expected $EnvironmentPathRegistryKey but doesn't exist"
+    }
+    try {
+        $rawPath = (Get-ItemProperty -Path $EnvironmentPathRegistryKey -Name $EnvironmentPathRegistryKeyValue -ErrorAction Stop).$EnvironmentPathRegistryKeyValue
+    }
+    catch {
+        throw "Could not read '$EnvironmentPathRegistryKeyValue' from '$EnvironmentPathRegistryKey': $_"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($rawPath)) {
+        throw "The '$EnvironmentPathRegistryKeyValue' value is empty."
+    }
+
+    $pathEntries = $rawPath -split ';' |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { $_ -ne '' }
+
+    function Normalize-Path {
+        param([string]$Path)
+        return $Path.TrimEnd('\').ToLowerInvariant()
+    }
+
+    $normalizedTarget = Normalize-Path $PodmanFolderPath
+
+    $match = $pathEntries | Where-Object { (Normalize-Path $_) -eq $normalizedTarget }
+
+    if ( (-not $match) -and (-not $expectIsMissing) ) {
+        throw "Not found: '$PodmanFolderPath' is NOT present in '${EnvironmentPathRegistryKey}\${EnvironmentPathRegistryKeyValue}'."
+    }
+    if ( $match -and $expectIsMissing ) {
+        throw "Found: '$PodmanFolderPath' is present in '${EnvironmentPathRegistryKey}\${EnvironmentPathRegistryKeyValue}'."
+    }
+    Write-Host "Verification was successful!`n"
+}
+
 function Uninstall-Podman-Bundle {
     param (
         # [Parameter(Mandatory)]
@@ -558,6 +614,7 @@ function Test-Installation {
             Test-Podman-Machine-Conf-Content -scope $scope
         }
     }
+    Test-Path-In-Environment-Reg-Key -scope $scope
 }
 
 function Test-Installation-No-Config {
@@ -567,6 +624,7 @@ function Test-Installation-No-Config {
     )
     Test-Podman-Objects-Exist -scope $scope
     Test-Podman-Machine-Conf-Exist-Not -scope $scope
+    Test-Path-In-Environment-Reg-Key -scope $scope
 }
 
 function Test-Uninstallation {
@@ -576,6 +634,7 @@ function Test-Uninstallation {
     )
     Test-Podman-Objects-Exist-Not -scope $scope
     Test-Podman-Machine-Conf-Exist-Not -scope $scope
+    Test-Path-In-Environment-Reg-Key -scope $scope -expectIsMissing
 }
 
 # SCENARIOS
