@@ -998,7 +998,7 @@ func (s *PodmanSessionIntegration) InspectPodToJSON() define.InspectPodData {
 	return i[0]
 }
 
-// InspectPodToJSON takes the sessions output from an inspect and returns json
+// InspectPodArrToJSON takes the session's inspect output and returns JSON-decoded pod data.
 func (s *PodmanSessionIntegration) InspectPodArrToJSON() []define.InspectPodData {
 	var i []define.InspectPodData
 	err := jsoniter.Unmarshal(s.Out.Contents(), &i)

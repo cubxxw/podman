@@ -1896,9 +1896,9 @@ func withReplicas(replicas int32) deploymentOption {
 	}
 }
 
-// getPodNameInDeployment returns the Pod object
+// getPodNameInDaemonSet returns the Pod object
 // with just its name set, so that it can be passed around
-// and into getCtrNameInPod for ease of testing
+// and into getCtrNameInPod for ease of testing.
 func getPodNameInDaemonSet(d *DaemonSet) Pod {
 	p := Pod{}
 	p.Name = fmt.Sprintf("%s-pod", d.Name)
