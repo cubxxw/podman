@@ -47,7 +47,7 @@ env:
 
 jobs:
   manage_locking:
-    if: github.repository == 'podman-container-tools/podman'
+    if: github.repository_owner == 'podman-container-tools'
     runs-on: ubuntu-latest
     permissions:
       issues: write
