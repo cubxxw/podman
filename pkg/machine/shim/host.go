@@ -439,23 +439,29 @@ func StopThenStart(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, hardSto
 	}
 	mc.Lock()
 	defer mc.Unlock()
-	if err := mc.Refresh(); err != nil {
-		return fmt.Errorf("reload config: %w", err)
-	}
-
-	if err := stopLocked(mc, mp, dirs, hardStop); err != nil {
+	err = mc.Refresh()
+	if err != nil {
+		err = fmt.Errorf("reload config: %w", err)
 		return err
 	}
 
-	if err := mc.Refresh(); err != nil {
-		return fmt.Errorf("reload config: %w", err)
+	err = stopLocked(mc, mp, dirs, hardStop)
+	if err != nil {
+		return err
+	}
+
+	err = mc.Refresh()
+	if err != nil {
+		err = fmt.Errorf("reload config: %w", err)
+		return err
 	}
 
 	callbackFuncs := machine.CleanUp()
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal(opts.Quiet)
 
-	return startLocked(mc, mp, dirs, opts, updateSystemConn, &callbackFuncs)
+	err = startLocked(mc, mp, dirs, opts, updateSystemConn, &callbackFuncs)
+	return err
 }
 
 // stopLocked stops the machine and expects the caller to hold the machine's lock.
@@ -537,11 +543,14 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 		defer func() { _ = mcunlock() }()
 	}
 
-	if err = mc.Refresh(); err != nil {
-		return fmt.Errorf("reload config: %w", err)
+	err = mc.Refresh()
+	if err != nil {
+		err = fmt.Errorf("reload config: %w", err)
+		return err
 	}
 
-	return startLocked(mc, mp, dirs, opts, updateSystemConn, &callbackFuncs)
+	err = startLocked(mc, mp, dirs, opts, updateSystemConn, &callbackFuncs)
+	return err
 }
 
 // startLocked starts the machine and expects the caller to hold the machine's lock.
