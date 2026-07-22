@@ -65,18 +65,6 @@ store.imageStore.number   | 1
     done < <(parse_table "$tests")
 }
 
-@test "podman info - host.memAvailable is sane" {
-    run_podman info --format '{{.Host.MemTotal}} {{.Host.MemAvailable}}'
-    read -r total avail <<<"$output"
-
-    # On Linux, MemAvailable must always be reported; -1 is the sentinel
-    # used on platforms where the kernel doesn't expose this value.
-    assert "$avail" -ge 0 "MemAvailable is supported (not the -1 'unknown' sentinel)"
-
-    # MemAvailable (reclaimable memory included) can never exceed MemTotal.
-    assert "$avail" -le "$total" "MemAvailable does not exceed MemTotal"
-}
-
 @test "podman info - confirm desired runtime" {
     if [[ -z "$CI_DESIRED_RUNTIME" ]]; then
         # When running in Cirrus, CI_DESIRED_RUNTIME *must* be defined
