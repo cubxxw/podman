@@ -244,6 +244,21 @@ var _ = Describe("Podman Info", func() {
 		}
 	})
 
+	It("Podman info: check host.memAvailable is sane", func() {
+		session := podmanTest.PodmanExitCleanly("info", "--format", "{{.Host.MemTotal}} {{.Host.MemAvailable}}")
+		var total, avail int64
+		_, err := fmt.Sscanf(session.OutputToString(), "%d %d", &total, &avail)
+		Expect(err).ToNot(HaveOccurred())
+
+		// On Linux, MemAvailable must always be reported; -1 is the
+		// sentinel used on platforms where the kernel doesn't expose
+		// this value.
+		Expect(avail).To(BeNumerically(">=", 0), "MemAvailable is supported (not the -1 'unknown' sentinel)")
+
+		// MemAvailable (reclaimable memory included) can never exceed MemTotal.
+		Expect(avail).To(BeNumerically("<=", total), "MemAvailable does not exceed MemTotal")
+	})
+
 	It("Podman info: check lock count", Serial, func() {
 		// This should not run on architectures and OSes that use the file locks backend.
 		// Which, for now, is Linux + RISCV and FreeBSD, neither of which are in CI - so

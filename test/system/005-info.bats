@@ -44,6 +44,9 @@ host.conmon.path          | $expr_path
 host.conmon.package       | .*conmon.*
 host.cgroupManager        | \\\(systemd\\\|cgroupfs\\\)
 host.cgroupVersion        | v[12]
+host.memFree              | [0-9]\\\+
+host.memAvailable         | [0-9]\\\+
+host.memTotal             | [0-9]\\\+
 host.networkBackendInfo   | .*dns.*package.*
 host.ociRuntime.path      | $expr_path
 host.pasta                | .*executable.*package.*
@@ -60,6 +63,18 @@ store.imageStore.number   | 1
         dprint "# actual=<$actual> expect=<$expect>"
         is "$actual" "$expect" "jq .$field"
     done < <(parse_table "$tests")
+}
+
+@test "podman info - host.memAvailable is sane" {
+    run_podman info --format '{{.Host.MemTotal}} {{.Host.MemAvailable}}'
+    read -r total avail <<<"$output"
+
+    # On Linux, MemAvailable must always be reported; -1 is the sentinel
+    # used on platforms where the kernel doesn't expose this value.
+    assert "$avail" -ge 0 "MemAvailable is supported (not the -1 'unknown' sentinel)"
+
+    # MemAvailable (reclaimable memory included) can never exceed MemTotal.
+    assert "$avail" -le "$total" "MemAvailable does not exceed MemTotal"
 }
 
 @test "podman info - confirm desired runtime" {
