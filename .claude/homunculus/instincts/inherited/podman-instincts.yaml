@@ -1,0 +1,406 @@
+# Instincts generated from https://github.com/cubxxw/podman
+# Generated: 2026-05-01T16:04:13.374Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: podman-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/cubxxw/podman
+---
+
+# Podman Commit Length
+
+## Action
+
+Write moderate-length commit messages (~60 characters)
+
+## Evidence
+
+- Average commit message length: 60 chars
+- Based on 4 commits
+
+---
+id: podman-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/cubxxw/podman
+---
+
+# Podman Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: podman-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/cubxxw/podman
+---
+
+# Podman Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: podman-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/cubxxw/podman
+---
+
+# Podman Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: podman-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/cubxxw/podman
+---
+
+# Podman Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: podman-workflow-update-go-module-dependency
+trigger: "when doing update go module dependency"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/cubxxw/podman
+---
+
+# Podman Workflow Update Go Module Dependency
+
+## Action
+
+Follow the update-go-module-dependency workflow:
+1. Update go.mod to specify the new version of the dependency.
+2. Update go.sum to reflect new dependency checksums.
+3. Update vendor/ directory to include new or changed files from the dependency.
+4. Update vendor/modules.txt to reflect the new dependency state.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: go.mod, go.sum, vendor/<dependency>/*
+
+---
+id: podman-workflow-bugfix-with-associated-test
+trigger: "when doing bugfix with associated test"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/cubxxw/podman
+---
+
+# Podman Workflow Bugfix With Associated Test
+
+## Action
+
+Follow the bugfix-with-associated-test workflow:
+1. Modify the relevant Go source file to fix the bug.
+2. Update or add a corresponding *_test.go file to test the fix.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: libpod/*.go, libpod/*_test.go
+
+---
+id: podman-instinct-go-file-naming
+trigger: "When creating or renaming Go source files"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: cubxxw/podman
+---
+
+# Podman Instinct Go File Naming
+
+## Action
+
+Use camelCase for file names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.files
+- Consistent with files in libpod/
+
+---
+id: podman-instinct-go-function-naming
+trigger: "When defining Go functions"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: cubxxw/podman
+---
+
+# Podman Instinct Go Function Naming
+
+## Action
+
+Use camelCase for function names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.functions
+
+---
+id: podman-instinct-go-class-naming
+trigger: "When defining Go structs or types that act as classes"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: cubxxw/podman
+---
+
+# Podman Instinct Go Class Naming
+
+## Action
+
+Use PascalCase for type names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.classes
+
+---
+id: podman-instinct-go-constant-naming
+trigger: "When declaring constants in Go"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: cubxxw/podman
+---
+
+# Podman Instinct Go Constant Naming
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constant names
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.constants
+
+---
+id: podman-instinct-go-import-style
+trigger: "When importing modules in Go files"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: cubxxw/podman
+---
+
+# Podman Instinct Go Import Style
+
+## Action
+
+Use relative imports
+
+## Evidence
+
+- Pattern in codeStyle.importStyle
+
+---
+id: podman-instinct-go-export-style
+trigger: "When exporting symbols from a Go package"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: cubxxw/podman
+---
+
+# Podman Instinct Go Export Style
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in codeStyle.exportStyle
+
+---
+id: podman-instinct-test-location
+trigger: "When adding or updating tests"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: cubxxw/podman
+---
+
+# Podman Instinct Test Location
+
+## Action
+
+Place test files in the same package directory as the code, using *_test.go suffix
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation
+- Files like libpod/*_test.go
+
+---
+id: podman-instinct-test-after-bugfix
+trigger: "When fixing a bug in a Go source file"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: cubxxw/podman
+---
+
+# Podman Instinct Test After Bugfix
+
+## Action
+
+Update or add a corresponding *_test.go file to verify the fix
+
+## Evidence
+
+- Workflow: bugfix-with-associated-test
+- Files: libpod/*.go, libpod/*_test.go
+
+---
+id: podman-instinct-git-commit-prefix-libpod
+trigger: "When committing changes to the libpod package"
+confidence: 0.8
+domain: git
+source: repo-analysis
+source_repo: cubxxw/podman
+---
+
+# Podman Instinct Git Commit Prefix Libpod
+
+## Action
+
+Prefix commit messages with 'libpod:'
+
+## Evidence
+
+- Commits like 'libpod: limit splitting of cgroup fields'
+
+---
+id: podman-instinct-git-commit-length
+trigger: "When writing commit messages"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: cubxxw/podman
+---
+
+# Podman Instinct Git Commit Length
+
+## Action
+
+Keep commit messages concise, around 60 characters on average
+
+## Evidence
+
+- Pattern in commits.averageLength
+
+---
+id: podman-instinct-git-merge-pr-format
+trigger: "When merging pull requests"
+confidence: 0.8
+domain: git
+source: repo-analysis
+source_repo: cubxxw/podman
+---
+
+# Podman Instinct Git Merge Pr Format
+
+## Action
+
+Use 'Merge pull request #[number] from [source]' format in commit message
+
+## Evidence
+
+- Commits like 'Merge pull request #28608 from containers/renovate/github.com-mattn-go-sqlite3-1.x'
+
+---
+id: podman-instinct-update-go-module-dependency
+trigger: "When updating a third-party Go module dependency"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: cubxxw/podman
+---
+
+# Podman Instinct Update Go Module Dependency
+
+## Action
+
+Update go.mod, go.sum, vendor/<dependency>/*, and vendor/modules.txt to reflect the new version
+
+## Evidence
+
+- Workflow: update-go-module-dependency
+- Commits updating go.mod, go.sum, vendor/
+
+---
+id: podman-instinct-bugfix-with-associated-test
+trigger: "When fixing a bug in libpod/*.go"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: cubxxw/podman
+---
+
+# Podman Instinct Bugfix With Associated Test
+
+## Action
+
+Update or add a corresponding libpod/*_test.go file to test the fix
+
+## Evidence
+
+- Workflow: bugfix-with-associated-test
+- Commits modifying libpod/*.go and libpod/*_test.go
+
